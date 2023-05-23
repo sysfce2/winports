@@ -29,16 +29,16 @@ jobs:
           cd "%GITHUB_WORKSPACE%\cpython"
           PCbuild\build.bat -e -v -c Release -p Win32
 
-      - name: Test
+      - name: Create artifacts
+        if: ${{ true }}
         shell: cmd
         run: |
           cd "%GITHUB_WORKSPACE%\cpython\PCbuild\win32"
-          dir /S
-          7z -?
+          7z a -aoa -r -saa -sse -t7z -mx9 -mfb=273 -ms -md=64m -mmt=2 -m0=LZMA2 -sdel -y "%GITHUB_WORKSPACE%\python.7z" *
 
       - name: Upload artifact
-        if: ${{ false }}
+        if: ${{ true }}
         uses: actions/upload-artifact@v3
         with:
           name: Artifact_Windows_${{ github.run_id }}
-          path: $GITHUB_WORKSPACE/cpython/PCbuild/win32/
+          path: $GITHUB_WORKSPACE/python.7z
