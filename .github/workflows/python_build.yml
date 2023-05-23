@@ -58,5 +58,5 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.artifact_name }}
-          path: ${G_WORKSPACE}/artifact
+          path: artifact
           if-no-files-found: error
