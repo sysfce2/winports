@@ -22,12 +22,8 @@ jobs:
           ref: v3.8.6
           path: 'cpython'
 
-      - name: Setup Visual Studio
-        if: ${{ false }}
-        uses: ''
-       
       - name: Build
-        if: ${{ false }}
+        if: ${{ true }}
         shell: cmd
         run: |
           cd "%GITHUB_WORKSPACE%\cpython"
