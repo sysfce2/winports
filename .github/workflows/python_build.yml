@@ -15,7 +15,7 @@ jobs:
 
     env:
         PYTHON_DIR: cpython
-        PYTHON_VER: 3.11.3
+        PYTHON_VER: v3.11.3
 
     steps:
       - name: Initialize
@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: python/cpython
-          ref: v${{ env.PYTHONE_VER }}
+          ref: ${{ env.PYTHON_VER }}
           path: ${{ env.PYTHON_DIR }}
 
       - name: Build
