@@ -54,13 +54,15 @@ jobs:
           NAME=Python
           mkdir -p "${G_WORKSPACE}/artifact"
 
+          echo "Copy binaries..."
           cd "$G_WORKSPACE/cpython/PCbuild/win32"
           shopt -s globstar
           rm -r -- **/*.pdb
           cp -a --parents * "${G_WORKSPACE}/artifact"
 
+          echo "Copy lib dir..."
           cd "$G_WORKSPACE/cpython"
-          ./install-sh "${G_WORKSPACE}/artifact"
+          ./install-sh Lib "${G_WORKSPACE}/artifact"
 
           echo "artifact_name=$NAME" >> "$GITHUB_ENV"
 
