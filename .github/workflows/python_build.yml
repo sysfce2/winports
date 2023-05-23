@@ -52,7 +52,7 @@ jobs:
         shell: bash
         run: |
           cd "$G_WORKSPACE/cpython/PCbuild/win32"
-          #rm -r *.pdb
+          rm -r *.pdb
           NAME=Python
           mkdir -p "${G_WORKSPACE}/artifact"
           cp -a --parents * "${G_WORKSPACE}/artifact"
