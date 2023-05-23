@@ -1,0 +1,35 @@
+name: Build Python
+run-name: Build Python
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2019
+
+    concurrency:
+      group: '${{ github.head_ref }}-windows-x64'
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout Python repo
+        if: ${{ true }}
+        uses: actions/checkout@v3
+        with:
+          repository: https://github.com/python/cpython
+          ref: v3.8.6
+          path: 'cpython'
+
+      - name: Setup Visual Studio
+        if: ${{ false }}
+        uses: ''
+       
+      - name: Build
+        if: ${{ false }}
+        shell: cmd
+        run: |
+          cd "%GITHUB_WORKSPACE%\cpython"
+          dir
+          rem PCbuild\build.bat -e -vv -c Release -p Win32
