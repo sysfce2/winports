@@ -18,7 +18,7 @@ jobs:
         if: ${{ true }}
         uses: actions/checkout@v3
         with:
-          repository: https://github.com/python/cpython
+          repository: python/cpython
           ref: v3.8.6
           path: 'cpython'
 
