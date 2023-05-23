@@ -21,7 +21,7 @@ jobs:
       - name: Initialize
         shell: bash
         run: |
-          GWS="${GITHUB_WORKSPACE//''/''"}
+          GWS="${GITHUB_WORKSPACE//'\'/'/'}"
           
           PYTHON_SRC_DIR="${GWS}/${PYTHON_DIR}"
           echo "PYTHON_SRC_DIR=${PYTHON_SRC_DIR}" >> "$GITHUB_ENV"
