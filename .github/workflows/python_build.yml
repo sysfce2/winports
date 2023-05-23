@@ -21,7 +21,7 @@ jobs:
           echo "G_WORKSPACE=${BUILD_DIR}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Checkout repo
-        if: ${{ false }}
+        if: ${{ true }}
         uses: actions/checkout@v3
         with:
           repository: python/cpython
@@ -51,12 +51,17 @@ jobs:
         if: ${{ true }}
         shell: bash
         run: |
+          NAME=Python
+          mkdir -p "${G_WORKSPACE}/artifact"
+
           cd "$G_WORKSPACE/cpython/PCbuild/win32"
           shopt -s globstar
           rm -r -- **/*.pdb
-          NAME=Python
-          mkdir -p "${G_WORKSPACE}/artifact"
           cp -a --parents * "${G_WORKSPACE}/artifact"
+
+          cd "$G_WORKSPACE/cpython"
+          ./install-sh "${G_WORKSPACE}/artifact"
+
           echo "artifact_name=$NAME" >> "$GITHUB_ENV"
 
       - name: ${{ format('Upload artifact {0}', env.artifact_name) }}
