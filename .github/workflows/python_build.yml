@@ -27,4 +27,4 @@ jobs:
         shell: cmd
         run: |
           cd "%GITHUB_WORKSPACE%\cpython"
-          PCbuild\build.bat -e -vv -c Release -p Win32
+          PCbuild\build.bat -e -M -v -c Release -p Win32
