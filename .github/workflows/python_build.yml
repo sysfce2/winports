@@ -54,12 +54,21 @@ jobs:
           set -e
           NAME=Python
           mkdir -p "${G_WORKSPACE}/artifact"
+          mkdir -p "${G_WORKSPACE}/artifact/DLLs"
+          mkdir -p "${G_WORKSPACE}/artifact/include"
+          mkdir -p "${G_WORKSPACE}/artifact/Lib"
+          mkdir -p "${G_WORKSPACE}/artifact/libs"
 
-          echo "Copy binaries..."
+          echo "Copy built files..."
           cd "$G_WORKSPACE/cpython/PCbuild/win32"
           shopt -s globstar
-          rm -r -- **/*.pdb
-          cp -a --parents * "${G_WORKSPACE}/artifact"
+          rm -f pybuilddir.txt _test*.* _freeze*.*
+          rm -f -r -- **/*.pdb
+          rm -f -r -- **/*.exp
+          cp -a --parents *.exe *.txt py*.dll vcruntime*.dll "${G_WORKSPACE}/artifact"
+          rm py*.dll vcruntime*.dll
+          cp -a --parents *.dll "${G_WORKSPACE}/artifact/DLLs"
+          cp -a --parents *.lib "${G_WORKSPACE}/artifact/libs"
 
           echo "artifact_name=$NAME" >> "$GITHUB_ENV"
 
