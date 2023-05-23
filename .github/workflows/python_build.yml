@@ -41,19 +41,21 @@ jobs:
         run: |
           mkdir -p "$G_WORKSPACE/cpython/PCbuild/win32"
           cd "$G_WORKSPACE/cpython/PCbuild/win32"
-          echo "dummmy" > "test.txt"
+          echo "dummy" > "test.txt"
+          echo "dummy" > "test.pdb"
           mkdir "mydir"
           echo "dummy" > "mydir/test2.txt"
+          echo "dummy" > "mydir/test2.pdb"
 
       - name: Make artifact
         if: ${{ true }}
         shell: bash
         run: |
           cd "$G_WORKSPACE/cpython/PCbuild/win32"
+          #rm -r *.pdb
           NAME=Python
           mkdir -p "${G_WORKSPACE}/artifact"
-          #7z a -aoa -r -saa -sse -t7z -mx9 -mfb=273 -ms -md=64m -mmt=2 -m0=LZMA2 -sdel -y "${G_WORKSPACE}/artifact/${NAME}" *
-          cp -a -v --parents * "${G_WORKSPACE}/artifact"
+          cp -a --parents * "${G_WORKSPACE}/artifact"
           echo "artifact_name=$NAME" >> "$GITHUB_ENV"
 
       - name: ${{ format('Upload artifact {0}', env.artifact_name) }}
