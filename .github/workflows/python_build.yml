@@ -62,7 +62,7 @@ jobs:
 
           echo "Copy lib dir..."
           cd "$G_WORKSPACE/cpython"
-          ./install-sh Lib "${G_WORKSPACE}/artifact"
+          ./install-sh -t "${G_WORKSPACE}/artifact" Lib
 
           echo "artifact_name=$NAME" >> "$GITHUB_ENV"
 
