@@ -35,39 +35,36 @@ jobs:
           cd "%GITHUB_WORKSPACE%\cpython"
           PCbuild\build.bat -e -v -c Release -p Win32
 
-      - name: Fake Build
-        if: ${{ false }}
-        shell: bash
-        run: |
-          mkdir -p "$G_WORKSPACE/cpython/PCbuild/win32"
-          cd "$G_WORKSPACE/cpython/PCbuild/win32"
-          echo "dummy" > "test.txt"
-          echo "dummy" > "test.pdb"
-          mkdir "mydir"
-          echo "dummy" > "mydir/test2.txt"
-          echo "dummy" > "mydir/test2.pdb"
-
       - name: Make artifact
         if: ${{ true }}
         shell: bash
         run: |
           set -e
           NAME=Python
+
+          echo "Creating directories..."
           mkdir -p "${G_WORKSPACE}/artifact"
           mkdir -p "${G_WORKSPACE}/artifact/DLLs"
           mkdir -p "${G_WORKSPACE}/artifact/include"
           mkdir -p "${G_WORKSPACE}/artifact/Lib"
           mkdir -p "${G_WORKSPACE}/artifact/libs"
 
-          echo "Copy built files..."
           cd "$G_WORKSPACE/cpython/PCbuild/win32"
           shopt -s globstar
+
+          echo "Deleting unneeded files..."
           rm -f pybuilddir.txt _test*.* _freeze*.*
           rm -f -r -- **/*.pdb
           rm -f -r -- **/*.exp
+
+          echo "Copying bin files..."
           cp -a --parents *.exe *.txt py*.dll vcruntime*.dll "${G_WORKSPACE}/artifact"
           rm py*.dll vcruntime*.dll
-          cp -a --parents *.dll "${G_WORKSPACE}/artifact/DLLs"
+
+          echo "Copying dll files..."
+          cp -a --parents *.dll *.pyd "${G_WORKSPACE}/artifact/DLLs"
+
+          echo "Copying lib files..."
           cp -a --parents *.lib "${G_WORKSPACE}/artifact/libs"
 
           echo "artifact_name=$NAME" >> "$GITHUB_ENV"
