@@ -29,14 +29,14 @@ jobs:
           path: cpython
 
       - name: Build
-        if: ${{ false }}
+        if: ${{ true }}
         shell: cmd
         run: |
           cd "%GITHUB_WORKSPACE%\cpython"
           PCbuild\build.bat -e -v -c Release -p Win32
 
       - name: Fake Build
-        if: ${{ true }}
+        if: ${{ false }}
         shell: bash
         run: |
           mkdir -p "$G_WORKSPACE/cpython/PCbuild/win32"
@@ -51,6 +51,7 @@ jobs:
         if: ${{ true }}
         shell: bash
         run: |
+          set -e
           NAME=Python
           mkdir -p "${G_WORKSPACE}/artifact"
 
@@ -59,10 +60,6 @@ jobs:
           shopt -s globstar
           rm -r -- **/*.pdb
           cp -a --parents * "${G_WORKSPACE}/artifact"
-
-          echo "Copy lib dir..."
-          cd "$G_WORKSPACE/cpython"
-          ./install-sh -t "${G_WORKSPACE}/artifact" Lib
 
           echo "artifact_name=$NAME" >> "$GITHUB_ENV"
 
