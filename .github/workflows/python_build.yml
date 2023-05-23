@@ -74,7 +74,7 @@ jobs:
           rm py*.dll vcruntime*.dll
 
           echo "Copying dll files..."
-          cp -a --parents *.dll *.pyd " "${ARTIFACT_DIR}/DLLs"
+          cp -a --parents *.dll *.pyd "${ARTIFACT_DIR}/DLLs"
 
           echo "Copying libs files..."
           cp -a --parents *.lib "${ARTIFACT_DIR}/libs"
