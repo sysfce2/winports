@@ -14,32 +14,49 @@ jobs:
       cancel-in-progress: true
 
     steps:
+     - name: Set build directory
+        run: |
+          $pattern = '[\\]'
+          $BUILD_DIR = $env:GITHUB_WORKSPACE -replace $pattern, '/'
+          echo "G_WORKSPACE=${BUILD_DIR}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Checkout repo
-        if: ${{ true }}
+        if: ${{ false }}
         uses: actions/checkout@v3
         with:
           repository: python/cpython
           ref: v3.11.3
-          path: 'cpython'
+          path: cpython
 
       - name: Build
-        if: ${{ true }}
+        if: ${{ false }}
         shell: cmd
         run: |
           cd "%GITHUB_WORKSPACE%\cpython"
           PCbuild\build.bat -e -v -c Release -p Win32
 
-      - name: Create artifacts
+      - name: Fake Build
         if: ${{ true }}
-        shell: cmd
+        shell: bash
         run: |
-          cd "%GITHUB_WORKSPACE%\cpython\PCbuild\win32"
-          7z a -aoa -r -saa -sse -t7z -mx9 -mfb=273 -ms -md=64m -mmt=2 -m0=LZMA2 -sdel -y "%GITHUB_WORKSPACE%\python.7z" *
+          mkdir -p "$G_WORKSPACE/cpython/PCbuild/win32"
+          cd "$G_WORKSPACE/cpython/PCbuild/win32"
+          echo "test" > "dummy.txt"
 
-      - name: Upload artifact
+      - name: Make artifact
+        if: ${{ true }}
+        shell: bash
+        run: |
+          cd "$G_WORKSPACE/cpython/PCbuild/win32"
+          NAME=Python
+          mkdir -p "${G_WORKSPACE}/artifact"
+          7z a -aoa -r -saa -sse -t7z -mx9 -mfb=273 -ms -md=64m -mmt=2 -m0=LZMA2 -sdel -y "${G_WORKSPACE}/artifact/${NAME}.7z" *
+          echo "artifact_name=$NAME" >> "$GITHUB_ENV"
+
+      - name: ${{ format('Upload artifact {0}', env.artifact_name) }}
         if: ${{ true }}
         uses: actions/upload-artifact@v3
         with:
-          name: Artifact_Windows_${{ github.run_id }}
-          path: %GITHUB_WORKSPACE%/python.7z
+          name: ${{ env.artifact_name }}
+          path: ${G_WORKSPACE}/artifact
           if-no-files-found: error
