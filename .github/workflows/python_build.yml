@@ -28,9 +28,12 @@ jobs:
         run: |
           cd "%GITHUB_WORKSPACE%\cpython"
           PCbuild\build.bat -e -M -v -c Release -p Win32
-          echo .
-          echo Listing build dir content...
-          dir /S win32
+
+      - name: Test
+        shell: cmd
+        run: |
+          cd "%GITHUB_WORKSPACE%\cpython\win32"
+          dir /S
           7z -?
 
       - name: Upload artifact
