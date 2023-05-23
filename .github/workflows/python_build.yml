@@ -27,12 +27,12 @@ jobs:
         shell: cmd
         run: |
           cd "%GITHUB_WORKSPACE%\cpython"
-          PCbuild\build.bat -e -M -v -c Release -p Win32
+          PCbuild\build.bat -e -v -c Release -p Win32
 
       - name: Test
         shell: cmd
         run: |
-          cd "%GITHUB_WORKSPACE%\cpython\win32"
+          cd "%GITHUB_WORKSPACE%\cpython\PCbuild\win32"
           dir /S
           7z -?
 
@@ -41,4 +41,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Artifact_Windows_${{ github.run_id }}
-          path: $GITHUB_WORKSPACE/cpython/win32/*
+          path: $GITHUB_WORKSPACE/cpython/PCbuild/win32/
