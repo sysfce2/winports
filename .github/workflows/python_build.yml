@@ -52,7 +52,8 @@ jobs:
           cd "$G_WORKSPACE/cpython/PCbuild/win32"
           NAME=Python
           mkdir -p "${G_WORKSPACE}/artifact"
-          7z a -aoa -r -saa -sse -t7z -mx9 -mfb=273 -ms -md=64m -mmt=2 -m0=LZMA2 -sdel -y "${G_WORKSPACE}/artifact/${NAME}" *
+          #7z a -aoa -r -saa -sse -t7z -mx9 -mfb=273 -ms -md=64m -mmt=2 -m0=LZMA2 -sdel -y "${G_WORKSPACE}/artifact/${NAME}" *
+          cp -a -v --parents * "${G_WORKSPACE}/artifact"
           echo "artifact_name=$NAME" >> "$GITHUB_ENV"
 
       - name: ${{ format('Upload artifact {0}', env.artifact_name) }}
