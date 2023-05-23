@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: python/cpython
-          #ref: v3.8.6
+          ref: v3.11.3
           path: 'cpython'
 
       - name: Build
@@ -28,3 +28,14 @@ jobs:
         run: |
           cd "%GITHUB_WORKSPACE%\cpython"
           PCbuild\build.bat -e -M -v -c Release -p Win32
+          echo .
+          echo Listing build dir content...
+          dir /S win32
+          7z -?
+
+      - name: Upload artifact
+        if: ${{ false }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: Artifact_Windows_${{ github.run_id }}
+          path: $GITHUB_WORKSPACE/cpython/win32/*
