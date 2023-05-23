@@ -13,26 +13,39 @@ jobs:
       group: '${{ github.head_ref }}-windows-x64'
       cancel-in-progress: true
 
+    env:
+        PYTHON_DIR: cpython
+        PYTHON_VER: 3.11.3
+
     steps:
-      - name: Set build directory
+      - name: Initialize
+        shell: bash
         run: |
-          $pattern = '[\\]'
-          $BUILD_DIR = $env:GITHUB_WORKSPACE -replace $pattern, '/'
-          echo "G_WORKSPACE=${BUILD_DIR}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+          GWS="${GITHUB_WORKSPACE//''/''"}
+          
+          PYTHON_SRC_DIR="${GWS}/${PYTHON_DIR}"
+          echo "PYTHON_SRC_DIR=${PYTHON_SRC_DIR}" >> "$GITHUB_ENV"
+
+          PYTHON_BLD_DIR="${PYTHON_SRC_DIR}/PCbuild/win32"
+          echo "PYTHON_BLD_DIR=${PYTHON_BLD_DIR}" >> "$GITHUB_ENV"
+
+          echo "ARTIFACT_NAME=Python" >> "$GITHUB_ENV"
+          ARTIFACT_DIR="${GWS}/artifact"
+          echo "ARTIFACT_DIR=${ARTIFACT_DIR}" >> "$GITHUB_ENV"
 
       - name: Checkout repo
         if: ${{ true }}
         uses: actions/checkout@v3
         with:
           repository: python/cpython
-          ref: v3.11.3
-          path: cpython
+          ref: v${{ PYTHONE_VER }}
+          path: ${{ PYTHON_DIR }}
 
       - name: Build
         if: ${{ true }}
         shell: cmd
         run: |
-          cd "%GITHUB_WORKSPACE%\cpython"
+          cd "%GITHUB_WORKSPACE%\%PYTHON_DIR%"
           PCbuild\build.bat -e -v -c Release -p Win32
 
       - name: Make artifact
@@ -40,17 +53,16 @@ jobs:
         shell: bash
         run: |
           set -e
-          NAME=Python
-
-          echo "Creating directories..."
-          mkdir -p "${G_WORKSPACE}/artifact"
-          mkdir -p "${G_WORKSPACE}/artifact/DLLs"
-          mkdir -p "${G_WORKSPACE}/artifact/include"
-          mkdir -p "${G_WORKSPACE}/artifact/Lib"
-          mkdir -p "${G_WORKSPACE}/artifact/libs"
-
-          cd "$G_WORKSPACE/cpython/PCbuild/win32"
           shopt -s globstar
+          # ---
+          echo "Creating directories..."
+          mkdir -p "${ARTIFACT_DIR}"
+          mkdir -p "${ARTIFACT_DIR}/DLLs"
+          mkdir -p "${ARTIFACT_DIR}/include"
+          mkdir -p "${ARTIFACT_DIR}/Lib"
+          mkdir -p "${ARTIFACT_DIR}/libs"
+          # ---
+          cd "$PYTHON_BLD_DIR"
 
           echo "Deleting unneeded files..."
           rm -f pybuilddir.txt _test*.* _freeze*.*
@@ -58,21 +70,27 @@ jobs:
           rm -f -r -- **/*.exp
 
           echo "Copying bin files..."
-          cp -a --parents *.exe *.txt py*.dll vcruntime*.dll "${G_WORKSPACE}/artifact"
+          cp -a --parents *.exe *.txt py*.dll vcruntime*.dll "${ARTIFACT_DIR}"
           rm py*.dll vcruntime*.dll
 
           echo "Copying dll files..."
-          cp -a --parents *.dll *.pyd "${G_WORKSPACE}/artifact/DLLs"
+          cp -a --parents *.dll *.pyd " "${ARTIFACT_DIR}/DLLs"
 
-          echo "Copying lib files..."
-          cp -a --parents *.lib "${G_WORKSPACE}/artifact/libs"
+          echo "Copying libs files..."
+          cp -a --parents *.lib "${ARTIFACT_DIR}/libs"
+          # ---
+          echo "Copying 'include' dir content..."
+          cd "${PYTHON_SRC_DIR}/include"
+          cp -a --parents * "${ARTIFACT_DIR}/include"
+          # ---
+          echo "Copying 'Lib' dir content..."
+          cd "${PYTHON_SRC_DIR}/Lib"
+          cp -a --parents * "${ARTIFACT_DIR}/Lib"
 
-          echo "artifact_name=$NAME" >> "$GITHUB_ENV"
-
-      - name: ${{ format('Upload artifact {0}', env.artifact_name) }}
+      - name: ${{ format('Upload artifact {0}', env.ARTIFACT_NAME) }}
         if: ${{ true }}
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.artifact_name }}
-          path: artifact
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_DIR }}
           if-no-files-found: error
