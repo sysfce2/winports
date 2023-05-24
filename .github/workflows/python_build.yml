@@ -21,10 +21,21 @@ env:
   PYTHON_PATCH2_FILE: "restore-windows-7-support-for-python%s.patch"
 
 jobs:
+  initialize:
+    name: 'Initialize'
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+    - name: Setup env vars
+      run: |
+        exit 1
+
   build_win32:
     name: 'Windows (x86)'
     runs-on: windows-latest
-    #needs: initialize
+    needs: initialize
     steps:
     - name: test
       shell: bash
