@@ -52,8 +52,10 @@ jobs:
 
       - name: Test
         run: |
-          echo "test"
+          set +e
+          echo "test 1"
           Test
+          echo "test 2"
           exit 1
 
       - name: Checkout repo
