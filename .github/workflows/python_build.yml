@@ -21,9 +21,12 @@ jobs:
         PYTHON_PATCH2_URL: "https://raw.githubusercontent.com/sysfce2/winports/main/packages/msys2/python/"
         PYTHON_PATCH2_FILE: "restore-windows-7-support-for-python%s.patch"
 
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - name: Initialize
-        shell: bash
         run: |
           G_WORKSPACE="${GITHUB_WORKSPACE//'\'/'/'}"
           echo "G_WORKSPACE=${G_WORKSPACE}" >> "$GITHUB_ENV"
@@ -40,6 +43,18 @@ jobs:
 
           PYTHON_PATCH2_FILE="${PYTHON_PATCH2_FILE//'%s'/"${PYTHON_VER}"}"
           echo "PYTHON_PATCH2_FILE=${PYTHON_PATCH2_FILE}" >> "$GITHUB_ENV"
+          # ---
+          function Test()
+          {
+            echo 'ok'
+          }
+          export -f Test
+
+      - name: Test
+        run: |
+          echo "test"
+          Test
+          exit 1
 
       - name: Checkout repo
         if: ${{ true }}
@@ -51,7 +66,6 @@ jobs:
 
       - name: Prepare
         if: ${{ true }}
-        shell: bash
         run: |
           set +e
           declare -i rc=0
@@ -108,7 +122,6 @@ jobs:
 
       - name: Make artifact
         if: ${{ true }}
-        shell: bash
         run: |
           set -e
           shopt -s globstar
