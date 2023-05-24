@@ -15,7 +15,7 @@ jobs:
 
     env:
         PYTHON_DIR: cpython
-        PYTHON_VER: v3.11.3
+        PYTHON_VER: 3.11.3
         PYTHON_PATCH1_URL: "https://raw.githubusercontent.com/msys2/MSYS2-packages/master/python/"
         PYTHON_PATCH1_FILE: "009-3.8-export-PySignal_SetWakeupFd.patch"
         PYTHON_PATCH2_URL: "https://raw.githubusercontent.com/sysfce2/winports/main/packages/msys2/python/"
@@ -46,7 +46,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: python/cpython
-          ref: ${{ env.PYTHON_VER }}
+          ref: v${{ env.PYTHON_VER }}
           path: ${{ env.PYTHON_DIR }}
 
       - name: Prepare
