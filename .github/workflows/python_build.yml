@@ -21,38 +21,10 @@ env:
   PYTHON_PATCH2_FILE: "restore-windows-7-support-for-python%s.patch"
 
 jobs:
-  initialize:
-    name: 'Initialize'
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: bash
-    steps:
-    - name: Setup env vars
-      run: |
-        G_WORKSPACE="${GITHUB_WORKSPACE//'\'/'/'}"
-        echo "G_WORKSPACE=${G_WORKSPACE}" >> "$GITHUB_ENV"
-        
-        PYTHON_SRC_DIR="${G_WORKSPACE}/${PYTHON_DIR}"
-        echo "PYTHON_SRC_DIR=${PYTHON_SRC_DIR}" >> "$GITHUB_ENV"
-
-        PYTHON_BLD_DIR="${PYTHON_SRC_DIR}/PCbuild/win32"
-        echo "PYTHON_BLD_DIR=${PYTHON_BLD_DIR}" >> "$GITHUB_ENV"
-
-        echo "ARTIFACT_NAME=Python v${PYTHON_VER}" >> "$GITHUB_ENV"
-        ARTIFACT_DIR="${G_WORKSPACE}/artifact"
-        echo "ARTIFACT_DIR=${ARTIFACT_DIR}" >> "$GITHUB_ENV"
-
-        PYTHON_PATCH2_FILE="${PYTHON_PATCH2_FILE//'%s'/"${PYTHON_VER}"}"
-        echo "PYTHON_PATCH2_FILE=${PYTHON_PATCH2_FILE}" >> "$GITHUB_ENV"
-
-        LIB_MCP="${TEMP}/mcp.sh"
-        echo "LIB_MCP=${LIB_MCP}" >> "$GITHUB_ENV"
-
   build_win32:
     name: 'Windows (x86)'
     runs-on: windows-latest
-    needs: initialize
+    #needs: initialize
     steps:
     - name: test
       shell: bash
