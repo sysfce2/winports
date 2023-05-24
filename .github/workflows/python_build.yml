@@ -19,7 +19,7 @@ jobs:
         PYTHON_PATCH1_URL: "https://raw.githubusercontent.com/msys2/MSYS2-packages/master/python/"
         PYTHON_PATCH1_FILE: "009-3.8-export-PySignal_SetWakeupFd.patch"
         PYTHON_PATCH2_URL: "https://raw.githubusercontent.com/sysfce2/winports/main/packages/msys2/python/"
-        PYTHON_PATCH2_FILE: "restore-windows-7-support-for-python${PYTHON_VER}.patch"
+        PYTHON_PATCH2_FILE: "restore-windows-7-support-for-python${{ env.PYTHON_VER }}.patch"
 
     steps:
       - name: Initialize
