@@ -234,6 +234,18 @@ diff -au a/PC/pyconfig.h b/PC/pyconfig.h
  
  /* We only set these values when building Python - we don't want to force
     these values on extensions, as that will affect the prototypes and
+diff -au a/PCbuild/_freeze_module.vcxproj b/PCbuild/_freeze_module.vcxproj
+--- a/PCbuild/_freeze_module.vcxproj	2023-04-05 00:22:17.000000000 +0200
++++ b/PCbuild/_freeze_module.vcxproj	2023-05-24 21:27:38.552120700 +0200
+@@ -94,7 +94,7 @@
+     </ClCompile>
+     <Link>
+       <SubSystem>Console</SubSystem>
+-      <AdditionalDependencies>version.lib;ws2_32.lib;pathcch.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
++      <AdditionalDependencies>version.lib;shlwapi.lib;ws2_32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+     </Link>
+   </ItemDefinitionGroup>
 diff -au a/PCbuild/pythoncore.vcxproj b/PCbuild/pythoncore.vcxproj
 --- a/PCbuild/pythoncore.vcxproj	2023-04-05 00:22:17.000000000 +0200
 +++ b/PCbuild/pythoncore.vcxproj	2023-05-24 07:48:24.834688900 +0200
