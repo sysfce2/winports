@@ -61,14 +61,18 @@ jobs:
 
     - name: Build
       if: ${{ true }}
+      shell: cmd
       run: .\PCbuild\build.bat -e -v -p Win32
       timeout-minutes: 30
 
     - name: Display build info
+      if: ${{ true }}
+      shell: cmd
       run: .\python.bat -m test.pythoninfo
 
     - name: Tests
       if: ${{ true }}
+      shell: cmd
       run: .\PCbuild\rt.bat -p Win32 -q -uall -u-cpu -rwW --slowest --timeout=1200 -j0
 
     - name: Make artifact
