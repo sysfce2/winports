@@ -30,7 +30,8 @@ jobs:
     steps:
     - name: Setup env vars
       run: |
-        exit 1
+        G_WORKSPACE="${GITHUB_WORKSPACE//'\'/'/'}"
+        echo "G_WORKSPACE=${G_WORKSPACE}" >> "$GITHUB_ENV"
 
   build_win32:
     name: 'Windows (x86)'
