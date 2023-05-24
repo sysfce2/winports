@@ -2,7 +2,7 @@ name: Build Python
 run-name: Build Python
 
 on:
-  #push:
+  push:
   workflow_dispatch:
 
 jobs:
