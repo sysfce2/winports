@@ -98,7 +98,7 @@ jobs:
   build_win32:
     name: 'Windows (x86)'
     runs-on: windows-latest
-    needs: inizialize
+    needs: initialize
     steps:
     - name: Checkout repo
       if: ${{ true }}
