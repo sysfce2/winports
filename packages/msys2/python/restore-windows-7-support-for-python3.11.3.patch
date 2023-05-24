@@ -22,7 +22,7 @@ diff -au a/Modules/_winapi.c b/Modules/_winapi.c
  {
 diff -au a/Modules/getpath.c b/Modules/getpath.c
 --- a/Modules/getpath.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Modules/getpath.c	2023-05-25 00:07:52.395001100 +0200
++++ b/Modules/getpath.c	2023-05-25 01:05:33.309954100 +0200
 @@ -11,7 +11,7 @@
  
  #ifdef MS_WINDOWS
@@ -45,7 +45,7 @@ diff -au a/Modules/getpath.c b/Modules/getpath.c
  static PyObject *
  getpath_isxfile(PyObject *Py_UNUSED(self), PyObject *args)
  {
-@@ -228,16 +234,40 @@
+@@ -228,16 +234,39 @@
      if (!PyArg_ParseTuple(args, "U", &pathobj)) {
          return NULL;
      }
@@ -81,7 +81,6 @@ diff -au a/Modules/getpath.c b/Modules/getpath.c
 +            (ext != NULL) &&
 +            (CompareStringOrdinal(ext, -1, L".exe", -1, 1 /* ignore case */) == CSTR_EQUAL)
 +            ? Py_True : Py_False;
-+        }
 +      }
  #else
          struct stat st;
