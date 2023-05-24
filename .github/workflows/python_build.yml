@@ -26,7 +26,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Initialize
-      uses: sysfce2/winports/tree/main/.github/actions/init@main
+      uses: sysfce2/winports/actions/init@main
 
     - name: Checkout repo
       if: ${{ true }}
