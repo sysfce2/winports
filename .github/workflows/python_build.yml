@@ -120,18 +120,20 @@ jobs:
           ApplyPatch \
             ${PYTHON_PATCH1_FILE} \
             ${PYTHON_PATCH2_FILE}
-          # ---
-          msg_info "Removing unneded files"
-          cd "${PYTHON_SRC_DIR}/include"
-          rm -f README.rst pydtrace.d
-          op_ok
 
       - name: Build
         if: ${{ false }}
         shell: cmd
         run: |
-          cd "%GITHUB_WORKSPACE%\%PYTHON_DIR%"
-          PCbuild\build.bat -e -v -c Release -p Win32
+          cd "%GITHUB_WORKSPACE%\%PYTHON_DIR%\PCbuild"
+          build.bat -e -v -c Release -p Win32
+
+      - name: Check
+        if: ${{ false }}
+        shell: cmd
+        run: |
+          cd "%GITHUB_WORKSPACE%\%PYTHON_DIR%\PCbuild"
+          rt.bat -q -p Win32
 
       - name: Make artifact
         if: ${{ true }}
@@ -148,16 +150,18 @@ jobs:
           op_ok
           # ---
           #cd "$PYTHON_BLD_DIR"
-
-          #msg_info "Removing unneeded files"
           #rm -f pybuilddir.txt _test*.* _freeze*.*
           #rm -f -r *.pdb
           #rm -f -r *.exp
           #op_ok
 
           #msg_info "Copying bin files"
-          #cp -a --parents *.exe *.txt py*.dll vcruntime*.dll "${ARTIFACT_DIR}"
+          #cp -a --parents *.exe py*.dll vcruntime*.dll "${ARTIFACT_DIR}"
           #rm py*.dll vcruntime*.dll
+          #op_ok
+
+          #msg_info "Copying 'LICENSE.txt' file"
+          #cp -a LICENSE.txt "${ARTIFACT_DIR}"
           #op_ok
 
           #msg_info "Copying dll files"
@@ -170,16 +174,18 @@ jobs:
           # ---
           msg_info "Copying 'include' dir content"
           cd "${PYTHON_SRC_DIR}/include"
+          rm -f README.rst pydtrace.d
           cp -a --parents * "${ARTIFACT_DIR}/include"
           op_ok
           # ---
           msg_info "Copying 'pyconfig.h' file"
           cd "${PYTHON_SRC_DIR}/PC"
-          cp -a pyconfig.h "${ARTIFACT_DIR}/include"
+          cp -a -f pyconfig.h "${ARTIFACT_DIR}/include"
           op_ok
           # ---
           msg_info "Copying 'Lib' dir content"
           cd "${PYTHON_SRC_DIR}/Lib"
+          rm -f -r __phello__
           cp -a --parents * "${ARTIFACT_DIR}/Lib"
           op_ok
 
