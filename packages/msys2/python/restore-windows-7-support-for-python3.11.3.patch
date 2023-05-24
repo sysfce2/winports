@@ -129,13 +129,13 @@ diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
          result = Py_BuildValue("sO", "", path->object);
 diff -au a/PC/launcher2.c b/PC/launcher2.c
 --- a/PC/launcher2.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/PC/launcher2.c	2023-05-25 01:31:27.081824800 +0200
++++ b/PC/launcher2.c	2023-05-25 01:38:17.978326700 +0200
 @@ -9,7 +9,10 @@
  #define __STDC_WANT_LIB_EXT1__ 1
  
  #include <windows.h>
 -#include <pathcch.h>
-+include <Shlwapi.h>
++#include <Shlwapi.h>
 +/* pathcch.h */
 +#define PATHCCH_ALLOW_LONG_PATHS 0x00000001
 +#define PATHCCH_MAX_CCH          0x8000
