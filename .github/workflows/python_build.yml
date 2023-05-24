@@ -54,7 +54,7 @@ jobs:
 
           function ll()
           {
-            ls -a -g -o --group-directories-first --time-style=long-iso "$@" | sed -E '2,$s/ +[0-9]+//'
+            ls -a -g -o --group-directories-first --time-style=long-iso "$@"
           }
 
           function CheckRC()
@@ -71,7 +71,7 @@ jobs:
 
           function msg_info()
           {
-            echo "arg: |$1|"
+            echo "arg: |$@|"
             printf "%s... " "$1"
           }
 
@@ -103,6 +103,7 @@ jobs:
       - name: Prepare
         if: ${{ true }}
         run: |
+          cat "$LIB_MCP"
           source "$LIB_MCP"; if (( $? )); then echo -n "\nFATAL ERROR: Unable to load library \"${LIB_MCP}\"!"; exit 1; fi
           # ---
           cd "${G_WORKSPACE}"
