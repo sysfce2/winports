@@ -68,13 +68,13 @@ jobs:
           {
             for _patch in "$@"; do
               echo "Applying $_patch"
-              patch -Nbp1 -t -i "${G_WORKSPACE}/$_patch"
+              patch -p1 -N -t -i "${G_WORKSPACE}/$_patch"
             done
           }
 
           printf "Retrieving patch file '${PYTHON_PATCH_009_FILE}'... "
-				  resp=`curl -f -s -S -L -o "${G_WORKSPACE}/${PYTHON_PATCH_009_FILE}" "$PYTHON_PATCH_009_URL" 2>&1`
-				  rc=$?; CheckRC
+          resp=`curl -f -s -S -L -o "${G_WORKSPACE}/${PYTHON_PATCH_009_FILE}" "$PYTHON_PATCH_009_URL" 2>&1`
+          rc=$?; CheckRC
           ls -a -g -o --group-directories-first --time-style=long-iso "."
 
           set -e
