@@ -129,7 +129,7 @@ diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
          result = Py_BuildValue("sO", "", path->object);
 diff -au a/PC/launcher2.c b/PC/launcher2.c
 --- a/PC/launcher2.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/PC/launcher2.c	2023-05-25 01:38:17.978326700 +0200
++++ b/PC/launcher2.c	2023-05-25 01:52:24.893767500 +0200
 @@ -9,7 +9,10 @@
  #define __STDC_WANT_LIB_EXT1__ 1
  
@@ -254,9 +254,9 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
 +  } else {
 +    if (!GetCurrentDirectoryW(MAXLEN, buffer) ||
 +        wcsncpy_s(script, MAXLEN, search->scriptFile, search->scriptFileLength) ||
-+        !PathCombineExW(buffer, buffer, script) ||
++        !PathCombineW(buffer, buffer, script) ||
 +        !PathRemoveFileSpecW(buffer) ||
-+        !PathCombineExW(buffer, buffer, command)
++        !PathCombineW(buffer, buffer, command)
 +    ) {
 +        return RC_NO_MEMORY;
 +    }
