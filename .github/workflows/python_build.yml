@@ -49,6 +49,10 @@ jobs:
         LIB_MCP="${TEMP}/mcp.sh"
         echo "LIB_MCP=${LIB_MCP}" >> "$GITHUB_ENV"
 
+    - name: Create MCP shell script
+      run: |
+        exit 1
+
   build_win32:
     name: 'Windows (x86)'
     runs-on: windows-latest
