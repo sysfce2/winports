@@ -43,23 +43,34 @@ jobs:
 
           PYTHON_PATCH2_FILE="${PYTHON_PATCH2_FILE//'%s'/"${PYTHON_VER}"}"
           echo "PYTHON_PATCH2_FILE=${PYTHON_PATCH2_FILE}" >> "$GITHUB_ENV"
+
+          LIB_MCP="${TEMP}/mcp.sh"
+          echo "LIB_MCP=${LIB_MCP}" >> "$GITHUB_ENV"
           # ---
+            cat >${MCP} <<END
           function Test()
           {
             echo 'ok'
           }
-          export -f Test
+          function CheckRC()
+          {
+            if (( rc )); then
+              echo 'failed'
+              printf "\nAn error has occurred!\n\n"
+              printf "Code %s\n%s\n" $rc "$resp"
+              exit 1
+            fi
+            # ---
+            echo 'ok'
+          }
+          END
 
       - name: Test
         run: |
           set +e
-          echo "test 1"
-          echo "export"
-          export
-          echo "export -f"
-          export -f
+          source "$LIB_MCP"; if (( $? )); then echo -n "\nFATAL ERROR: Unable to load library \"${LIB_MCP}\"!"; exit 1; fi
+          echo "call test"
           Test
-          echo "test 2"
           exit 1
 
       - name: Checkout repo
@@ -78,18 +89,6 @@ jobs:
           declare resp=""
 
           cd "${G_WORKSPACE}"
-
-          function CheckRC()
-          {
-            if (( rc )); then
-              echo 'failed'
-              printf "\nAn error has occurred!\n\n"
-              printf "Code %s\n%s\n" $rc "$resp"
-              exit 1
-            fi
-            # ---
-            echo 'ok'
-          }
 
           function ApplyPatch()
           {
