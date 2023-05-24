@@ -39,8 +39,7 @@ jobs:
           echo "ARTIFACT_DIR=${ARTIFACT_DIR}" >> "$GITHUB_ENV"
 
           PYTHON_PATCH2_FILE="${PYTHON_PATCH2_FILE//'%s'/"${PYTHON_VER}"}"
-          echo "PYTHON_PATCH2_FILE: $PYTHON_PATCH2_FILE"
-          exit 1
+          echo "PYTHON_PATCH2_FILE=${PYTHON_PATCH2_FILE}" >> "$GITHUB_ENV"
 
       - name: Checkout repo
         if: ${{ true }}
