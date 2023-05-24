@@ -84,7 +84,7 @@ jobs:
           resp=`curl -f -s -S -L -o "${PYTHON_PATCH2_FILE}" "${PYTHON_PATCH2_URL}/${PYTHON_PATCH2_FILE}" 2>&1`
           rc=$?; CheckRC
 
-        	ls -a -g -o --group-directories-first --time-style=long-iso "."
+          ls -a -g -o --group-directories-first --time-style=long-iso "."
 
           cd "${PYTHON_SRC_DIR}"
           ApplyPatch \
