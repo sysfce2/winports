@@ -16,21 +16,24 @@ jobs:
     env:
         PYTHON_DIR: cpython
         PYTHON_VER: v3.11.3
+        PYTHON_PATCH_009_FILE: 009-3.8-export-PySignal_SetWakeupFd.patch
+        PYTHON_PATCH_009_URL: https://raw.githubusercontent.com/msys2/MSYS2-packages/master/python/${PYTHON_PATCH_009_FILE}
 
     steps:
       - name: Initialize
         shell: bash
         run: |
-          GWS="${GITHUB_WORKSPACE//'\'/'/'}"
+          G_WORKSPACE="${GITHUB_WORKSPACE//'\'/'/'}"
+          echo "G_WORKSPACE=${G_WORKSPACE}" >> "$GITHUB_ENV"
           
-          PYTHON_SRC_DIR="${GWS}/${PYTHON_DIR}"
+          PYTHON_SRC_DIR="${G_WORKSPACE}/${PYTHON_DIR}"
           echo "PYTHON_SRC_DIR=${PYTHON_SRC_DIR}" >> "$GITHUB_ENV"
 
           PYTHON_BLD_DIR="${PYTHON_SRC_DIR}/PCbuild/win32"
           echo "PYTHON_BLD_DIR=${PYTHON_BLD_DIR}" >> "$GITHUB_ENV"
 
           echo "ARTIFACT_NAME=Python" >> "$GITHUB_ENV"
-          ARTIFACT_DIR="${GWS}/artifact"
+          ARTIFACT_DIR="${G_WORKSPACE}/artifact"
           echo "ARTIFACT_DIR=${ARTIFACT_DIR}" >> "$GITHUB_ENV"
 
       - name: Checkout repo
@@ -40,6 +43,46 @@ jobs:
           repository: python/cpython
           ref: ${{ env.PYTHON_VER }}
           path: ${{ env.PYTHON_DIR }}
+
+      - name: Fix repo
+        if: ${{ true }}
+        shell: bash
+        run:
+          set +e
+          declare -i rc=0
+          declare resp=""
+
+          function CheckRC()
+          {
+            if (( rc )); then
+              echo "failed"
+            	printf "\nAn error has occurred!\n\n"
+	            printf "Code %s\n%s\n" $rc "$resp"
+	            exit 1
+	          fi
+            # ---
+            echo "ok"
+          }
+
+          function apply_patch()
+          {
+            for _patch in "$@"; do
+              echo "Applying $_patch"
+              patch -Nbp1 -t -i "${G_WORKSPACE}/$_patch"
+            done
+          }
+
+          printf "Retrieving patch file '${PYTHON_PATCH_009_FILE}'... "
+				  resp=`curl -f -s -S -L -o "${G_WORKSPACE}/${PYTHON_PATCH_009_FILE}" "$PYTHON_PATCH_009_URL" 2>&1`
+				  rc=$?; CheckRC
+          ls -a -g -o --group-directories-first --time-style=long-iso "."
+
+          set -e
+          printf "Deleting unneded files... "
+          cd "${PYTHON_SRC_DIR}/include"
+          rm -f README.rst pydtrace.d
+          echo 'ok'
+          exit 1
 
       - name: Build
         if: ${{ true }}
