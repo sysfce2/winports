@@ -47,7 +47,7 @@ jobs:
           LIB_MCP="${TEMP}/mcp.sh"
           echo "LIB_MCP=${LIB_MCP}" >> "$GITHUB_ENV"
           # ---
-            cat >${MCP} <<END
+            cat >${LIB_MCP} <<END
           function Test()
           {
             echo 'ok'
