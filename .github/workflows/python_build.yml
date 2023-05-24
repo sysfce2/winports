@@ -103,8 +103,6 @@ jobs:
       - name: Prepare
         if: ${{ true }}
         run: |
-          cat "$LIB_MCP"
-          exit 1
           source "$LIB_MCP"; if (( $? )); then echo -n "\nFATAL ERROR: Unable to load library \"${LIB_MCP}\"!"; exit 1; fi
           # ---
           cd "${G_WORKSPACE}"
