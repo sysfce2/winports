@@ -83,6 +83,7 @@ jobs:
           resp=`curl -f -s -S -L -o "${PYTHON_PATCH1_FILE}" "${PYTHON_PATCH1_URL}/${PYTHON_PATCH1_FILE}" 2>&1`
           rc=$?; CheckRC
 
+          echo "url: ${PYTHON_PATCH2_URL}/${PYTHON_PATCH2_FILE}"
           printf "Retrieving patch file '${PYTHON_PATCH2_FILE}'... "
           resp=`curl -f -s -S -L -o "${PYTHON_PATCH2_FILE}" "${PYTHON_PATCH2_URL}/${PYTHON_PATCH2_FILE}" 2>&1`
           rc=$?; CheckRC
