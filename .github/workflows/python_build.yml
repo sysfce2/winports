@@ -47,14 +47,14 @@ jobs:
           LIB_MCP="${TEMP}/mcp.sh"
           echo "LIB_MCP=${LIB_MCP}" >> "$GITHUB_ENV"
           # ---
-            cat >${LIB_MCP} <<END
+            cat > ${LIB_MCP} <<EOF
           set +e
           declare -i rc=0
           declare resp=""
 
           function ll()
           {
-            ls -a -g -o --group-directories-first --time-style=long-iso "$@"
+            ls -a -g -o --group-directories-first --time-style=long-iso "\$@"
           }
 
           function CheckRC()
@@ -62,7 +62,7 @@ jobs:
             if (( rc )); then
               op_failed
               printf "\nAn error has occurred!\n\n"
-              printf "Code %s\n%s\n" $rc "$resp"
+              printf "Code %s\n%s\n" \$rc "\$resp"
               exit 1
             fi
             # ---
@@ -71,26 +71,26 @@ jobs:
 
           function msg_info()
           {
-            echo "arg: |$@|"
-            printf "%s... " "$1"
+            echo "arg: |\$@|"
+            printf "%s... " "\$1"
           }
 
           function ApplyPatch()
           {
-            for _patch in "$@"; do
-              echo "Applying $_patch"
-              patch -Np1 -i "${G_WORKSPACE}/$_patch"
+            for _patch in "\$@"; do
+              echo "Applying \$_patch"
+              patch -Np1 -i "\${G_WORKSPACE}/\$_patch"
             done
           }
 
-          function op_ok()     { _op_status "ok"     "${@}"; }
-          function op_failed() { _op_status "failed" "${@}"; }
+          function op_ok()     { _op_status "ok"     "\${@}"; }
+          function op_failed() { _op_status "failed" "\${@}"; }
 
           function _op_status()
           {
-              printf "%s\n" "$1"
+              printf "%s\n" "\$1"
           }
-          END
+          EOF
 
       - name: Checkout repo
         if: ${{ false }}
@@ -104,6 +104,7 @@ jobs:
         if: ${{ true }}
         run: |
           cat "$LIB_MCP"
+          exit 1
           source "$LIB_MCP"; if (( $? )); then echo -n "\nFATAL ERROR: Unable to load library \"${LIB_MCP}\"!"; exit 1; fi
           # ---
           cd "${G_WORKSPACE}"
