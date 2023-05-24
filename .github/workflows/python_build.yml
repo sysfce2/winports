@@ -72,7 +72,7 @@ jobs:
           {
             for _patch in "$@"; do
               echo "Applying $_patch"
-              patch -p1 -N -t --verbose -i "${G_WORKSPACE}/$_patch"
+              patch -Np1 -i "${G_WORKSPACE}/$_patch"
             done
           }
 
@@ -84,11 +84,10 @@ jobs:
           resp=`curl -f -s -S -L -o "${PYTHON_PATCH2_FILE}" "${PYTHON_PATCH2_URL}/${PYTHON_PATCH2_FILE}" 2>&1`
           rc=$?; CheckRC
 
-          ls -a -g -o --group-directories-first --time-style=long-iso "."
-          ls -a -g -o --group-directories-first --time-style=long-iso "cpython"
-
           cd "${PYTHON_SRC_DIR}"
-          ApplyPatch ${PYTHON_PATCH1_FILE}
+          ApplyPatch \
+            ${PYTHON_PATCH1_FILE} \
+            ${PYTHON_PATCH2_FILE}
 
           set -e
           printf "Deleting unneded files... "
