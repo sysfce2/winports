@@ -51,6 +51,7 @@ jobs:
 
     - name: Create MCP shell script
       run: |
+        # ---
           cat >"${LIB_MCP}" <<END
         set +e
         declare -i rc=0
