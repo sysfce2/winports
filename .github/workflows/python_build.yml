@@ -49,7 +49,7 @@ jobs:
         LIB_MCP="${TEMP}/mcp.sh"
         echo "LIB_MCP=${LIB_MCP}" >> "$GITHUB_ENV"
 
-    - name: Create '${LIB_MCP}' shell script
+    - name: Create MCP shell script
       run: |
           cat > ${LIB_MCP} <<EOF
         set +e
