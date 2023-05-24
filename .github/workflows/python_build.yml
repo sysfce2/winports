@@ -56,11 +56,6 @@ jobs:
         declare -i rc=0
         declare resp=""
 
-        function ll()
-        {
-          ls -a -g -o --group-directories-first --time-style=long-iso "\$@"
-        }
-
         function CheckRC()
         {
           if (( rc )); then
@@ -69,7 +64,7 @@ jobs:
             printf "Code %s\n%s\n" \$rc "\$resp"
             exit 1
           fi
-          # ---
+        # ---
           op_ok
         }
 
