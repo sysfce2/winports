@@ -1,11 +1,11 @@
 diff -au a/Modules/_winapi.c b/Modules/_winapi.c
 --- a/Modules/_winapi.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Modules/_winapi.c	2023-05-25 01:20:54.173624500 +0200
++++ b/Modules/_winapi.c	2023-05-25 01:31:41.228633900 +0200
 @@ -41,6 +41,11 @@
  
  #define WINDOWS_LEAN_AND_MEAN
  #include "windows.h"
-+/* <winnls.h> */
++/* winnls.h */
 +#if WINVER < 0x0602
 +#define LCMAP_SORTHANDLE 0x20000000
 +#define LCMAP_HASH 0x00040000
@@ -129,18 +129,20 @@ diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
          result = Py_BuildValue("sO", "", path->object);
 diff -au a/PC/launcher2.c b/PC/launcher2.c
 --- a/PC/launcher2.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/PC/launcher2.c	2023-05-24 18:55:52.601290100 +0200
-@@ -9,7 +9,8 @@
++++ b/PC/launcher2.c	2023-05-25 01:31:27.081824800 +0200
+@@ -9,7 +9,10 @@
  #define __STDC_WANT_LIB_EXT1__ 1
  
  #include <windows.h>
 -#include <pathcch.h>
 +include <Shlwapi.h>
++/* pathcch.h */
 +#define PATHCCH_ALLOW_LONG_PATHS 0x00000001
++#define PATHCCH_MAX_CCH          0x8000
  #include <fcntl.h>
  #include <io.h>
  #include <shlobj.h>
-@@ -42,6 +43,14 @@
+@@ -42,6 +45,14 @@
  
  static FILE * log_fp = NULL;
  
@@ -155,7 +157,7 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
  void
  debug(wchar_t * format, ...)
  {
-@@ -188,9 +197,25 @@
+@@ -188,9 +199,25 @@
  bool
  join(wchar_t *buffer, size_t bufferLength, const wchar_t *fragment)
  {
@@ -181,7 +183,7 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
      return false;
  }
  
-@@ -853,6 +878,18 @@
+@@ -853,6 +880,18 @@
              winerror(0, L"Failed to read from %s\n", iniPath);
          }
      }
@@ -200,7 +202,7 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
      if (GetModuleFileNameW(NULL, iniPath, MAXLEN) &&
          SUCCEEDED(PathCchRemoveFileSpec(iniPath, MAXLEN)) &&
          join(iniPath, MAXLEN, L"py.ini")) {
-@@ -867,6 +904,22 @@
+@@ -867,6 +906,22 @@
              winerror(0, L"Failed to read from %s\n", iniPath);
          }
      }
@@ -223,7 +225,7 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
      return 0;
  }
  
-@@ -921,6 +974,20 @@
+@@ -921,6 +976,20 @@
      }
      *pC = L'\0';
  
@@ -244,7 +246,7 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
      if (!GetCurrentDirectoryW(MAXLEN, buffer) ||
          wcsncpy_s(script, MAXLEN, search->scriptFile, search->scriptFileLength) ||
          FAILED(PathCchCombineEx(buffer, MAXLEN, buffer, script,
-@@ -931,7 +998,16 @@
+@@ -931,7 +1000,16 @@
      ) {
          return RC_NO_MEMORY;
      }
@@ -262,7 +264,7 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
      int n = (int)wcsnlen(buffer, MAXLEN);
      wchar_t *path = allocSearchInfoBuffer(search, n + 1);
      if (!path) {
-@@ -1419,9 +1495,25 @@
+@@ -1419,9 +1497,25 @@
          return RC_NO_MEMORY;
      }
  
