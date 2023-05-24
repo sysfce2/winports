@@ -54,6 +54,9 @@ jobs:
         run: |
           set +e
           echo "test 1"
+          echo "export"
+          export
+          echo "export -f"
           export -f
           Test
           echo "test 2"
