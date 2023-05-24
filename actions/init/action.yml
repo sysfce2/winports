@@ -2,11 +2,9 @@ name: 'Inizialize'
 
 runs:
   using: 'composite'
-  defaults:
-    run:
-      shell: bash
   steps:
   - name: Setup env vars
+    shell: bash
     run: |
       G_WORKSPACE="${GITHUB_WORKSPACE//'\'/'/'}"
       echo "G_WORKSPACE=${G_WORKSPACE}" >> "$GITHUB_ENV"
@@ -28,6 +26,7 @@ runs:
       echo "LIB_MCP=${LIB_MCP}" >> "$GITHUB_ENV"
 
   - name: Create MCP shell script
+    shell: bash
     run: |
       # ---
         cat > ${LIB_MCP} <<EOF
