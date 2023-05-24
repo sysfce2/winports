@@ -122,14 +122,14 @@ jobs:
             ${PYTHON_PATCH2_FILE}
 
       - name: Build
-        if: ${{ false }}
+        if: ${{ true }}
         shell: cmd
         run: |
           cd "%GITHUB_WORKSPACE%\%PYTHON_DIR%\PCbuild"
           build.bat -e -v -c Release -p Win32
 
       - name: Check
-        if: ${{ false }}
+        if: ${{ true }}
         shell: cmd
         run: |
           cd "%GITHUB_WORKSPACE%\%PYTHON_DIR%\PCbuild"
@@ -142,51 +142,56 @@ jobs:
           set -e
           # ---
           msg_info "Creating directories"
-          mkdir -p "${ARTIFACT_DIR}"
-          mkdir -p "${ARTIFACT_DIR}/DLLs"
-          mkdir -p "${ARTIFACT_DIR}/include"
-          mkdir -p "${ARTIFACT_DIR}/Lib"
-          mkdir -p "${ARTIFACT_DIR}/libs"
+            mkdir -p "${ARTIFACT_DIR}"
+            mkdir -p "${ARTIFACT_DIR}/DLLs"
+            mkdir -p "${ARTIFACT_DIR}/include"
+            mkdir -p "${ARTIFACT_DIR}/Lib"
+            mkdir -p "${ARTIFACT_DIR}/libs"
           op_ok
           # ---
-          #cd "$PYTHON_BLD_DIR"
-          #rm -f pybuilddir.txt _test*.* _freeze*.*
-          #rm -f -r *.pdb
-          #rm -f -r *.exp
-          #op_ok
+          msg_info "Removing unneeded files"
+            cd "${PYTHON_SRC_DIR}/include"
+            rm -f README.rst pydtrace.d cpython/pyerrors.h.orig
 
-          #msg_info "Copying bin files"
-          #cp -a --parents *.exe py*.dll vcruntime*.dll "${ARTIFACT_DIR}"
-          #rm py*.dll vcruntime*.dll
-          #op_ok
+            cd "${PYTHON_BLD_DIR}"
+            rm -f _test*.*
+            rm -f _freeze*.*
+            rm -f *.pdb
+            rm -f *.exp
+          op_ok
+          # ---
+          cd "$PYTHON_BLD_DIR"
 
-          #msg_info "Copying 'LICENSE.txt' file"
-          #cp -a LICENSE.txt "${ARTIFACT_DIR}"
-          #op_ok
+          msg_info "Copying bin files"
+            cp -a *.exe py*.dll vcruntime*.dll "${ARTIFACT_DIR}"
+            rm py*.dll vcruntime*.dll
+          op_ok
 
-          #msg_info "Copying dll files"
-          #cp -a --parents *.dll *.pyd "${ARTIFACT_DIR}/DLLs"
-          #op_ok
+          msg_info "Copying txt file"
+            cp -a LICENSE.txt NEWS.txt "${ARTIFACT_DIR}"
+          op_ok
 
-          #msg_info "Copying libs files"
-          #cp -a --parents *.lib "${ARTIFACT_DIR}/libs"
-          #op_ok
+          msg_info "Copying dll files"
+            cp -a *.dll *.pyd "${ARTIFACT_DIR}/DLLs"
+          op_ok
+
+          msg_info "Copying libs files"
+            cp -a *.lib "${ARTIFACT_DIR}/libs"
+          op_ok
           # ---
           msg_info "Copying 'include' dir content"
-          cd "${PYTHON_SRC_DIR}/include"
-          rm -f README.rst pydtrace.d cpython/pyerrors.h.orig
-          cp -a --parents * "${ARTIFACT_DIR}/include"
+            cd "${PYTHON_SRC_DIR}/include"
+            cp -a --parents * "${ARTIFACT_DIR}/include"
           op_ok
           # ---
           msg_info "Copying 'pyconfig.h' file"
-          cd "${PYTHON_SRC_DIR}/PC"
-          cp -a -f pyconfig.h "${ARTIFACT_DIR}/include"
+            cd "${PYTHON_SRC_DIR}/PC"
+            cp -a -f pyconfig.h "${ARTIFACT_DIR}/include"
           op_ok
           # ---
           msg_info "Copying 'Lib' dir content"
-          cd "${PYTHON_SRC_DIR}/Lib"
-          rm -f -r test
-          cp -a --parents * "${ARTIFACT_DIR}/Lib"
+            cd "${PYTHON_SRC_DIR}/Lib"
+            cp -a --parents * "${ARTIFACT_DIR}/Lib"
           op_ok
 
       - name: ${{ format('Upload artifact {0}', env.ARTIFACT_NAME) }}
