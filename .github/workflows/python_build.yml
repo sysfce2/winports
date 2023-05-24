@@ -71,7 +71,6 @@ jobs:
 
           function msg_info()
           {
-            echo "arg: |\$@|"
             printf "%s... " "\$1"
           }
 
@@ -93,7 +92,7 @@ jobs:
           EOF
 
       - name: Checkout repo
-        if: ${{ false }}
+        if: ${{ true }}
         uses: actions/checkout@v3
         with:
           repository: python/cpython
@@ -114,9 +113,6 @@ jobs:
           msg_info "Retrieving patch file '${PYTHON_PATCH2_FILE}'"
           resp=`curl -f -s -S -L -o "${PYTHON_PATCH2_FILE}" "${PYTHON_PATCH2_URL}/${PYTHON_PATCH2_FILE}" 2>&1`
           rc=$?; CheckRC
-          echo "PWD: $PWD"
-          ll
-          exit 1
           # ---
           set -e
           cd "${PYTHON_SRC_DIR}"
@@ -151,26 +147,26 @@ jobs:
           mkdir -p "${ARTIFACT_DIR}/libs"
           op_ok
           # ---
-          cd "$PYTHON_BLD_DIR"
+          #cd "$PYTHON_BLD_DIR"
 
-          msg_info "Removing unneeded files"
-          rm -f pybuilddir.txt _test*.* _freeze*.*
-          rm -f -r *.pdb
-          rm -f -r *.exp
-          op_ok
+          #msg_info "Removing unneeded files"
+          #rm -f pybuilddir.txt _test*.* _freeze*.*
+          #rm -f -r *.pdb
+          #rm -f -r *.exp
+          #op_ok
 
-          msg_info "Copying bin files"
-          cp -a --parents *.exe *.txt py*.dll vcruntime*.dll "${ARTIFACT_DIR}"
-          rm py*.dll vcruntime*.dll
-          op_ok
+          #msg_info "Copying bin files"
+          #cp -a --parents *.exe *.txt py*.dll vcruntime*.dll "${ARTIFACT_DIR}"
+          #rm py*.dll vcruntime*.dll
+          #op_ok
 
-          msg_info "Copying dll files"
-          cp -a --parents *.dll *.pyd "${ARTIFACT_DIR}/DLLs"
-          op_ok
+          #msg_info "Copying dll files"
+          #cp -a --parents *.dll *.pyd "${ARTIFACT_DIR}/DLLs"
+          #op_ok
 
-          msg_info "Copying libs files"
-          cp -a --parents *.lib "${ARTIFACT_DIR}/libs"
-          op_ok
+          #msg_info "Copying libs files"
+          #cp -a --parents *.lib "${ARTIFACT_DIR}/libs"
+          #op_ok
           # ---
           msg_info "Copying 'include' dir content"
           cd "${PYTHON_SRC_DIR}/include"
