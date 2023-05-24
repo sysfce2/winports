@@ -48,30 +48,43 @@ jobs:
           echo "LIB_MCP=${LIB_MCP}" >> "$GITHUB_ENV"
           # ---
             cat >${LIB_MCP} <<END
-          function Test()
-          {
-            echo 'ok'
-          }
+          set +e
+          declare -i rc=0
+          declare resp=""
+
           function CheckRC()
           {
             if (( rc )); then
-              echo 'failed'
+              op_failed
               printf "\nAn error has occurred!\n\n"
               printf "Code %s\n%s\n" $rc "$resp"
               exit 1
             fi
             # ---
-            echo 'ok'
+            op_ok
+          }
+
+          function msg_info()
+          {
+              printf "%s... " "$1"
+          }
+
+          function ApplyPatch()
+          {
+            for _patch in "$@"; do
+              echo "Applying $_patch"
+              patch -Np1 -i "${G_WORKSPACE}/$_patch"
+            done
+          }
+
+          function op_ok()     { _op_status "ok"     "${@}"; }
+          function op_failed() { _op_status "failed" "${@}"; }
+
+          function _op_status()
+          {
+              printf "%s\n" "$1"
           }
           END
-
-      - name: Test
-        run: |
-          set +e
-          source "$LIB_MCP"; if (( $? )); then echo -n "\nFATAL ERROR: Unable to load library \"${LIB_MCP}\"!"; exit 1; fi
-          echo "call test"
-          Test
-          exit 1
 
       - name: Checkout repo
         if: ${{ true }}
@@ -84,42 +97,32 @@ jobs:
       - name: Prepare
         if: ${{ true }}
         run: |
-          set +e
-          declare -i rc=0
-          declare resp=""
-
+          source "$LIB_MCP"; if (( $? )); then echo -n "\nFATAL ERROR: Unable to load library \"${LIB_MCP}\"!"; exit 1; fi
+          # ---
           cd "${G_WORKSPACE}"
 
-          function ApplyPatch()
-          {
-            for _patch in "$@"; do
-              echo "Applying $_patch"
-              patch -Np1 -i "${G_WORKSPACE}/$_patch"
-            done
-          }
-
-          printf "Retrieving patch file '${PYTHON_PATCH1_FILE}'... "
+          msg_info "Retrieving patch file '${PYTHON_PATCH1_FILE}'"
           resp=`curl -f -s -S -L -o "${PYTHON_PATCH1_FILE}" "${PYTHON_PATCH1_URL}/${PYTHON_PATCH1_FILE}" 2>&1`
           rc=$?; CheckRC
-
-          printf "Retrieving patch file '${PYTHON_PATCH2_FILE}'... "
+          # ---
+          msg_info "Retrieving patch file '${PYTHON_PATCH2_FILE}'"
           resp=`curl -f -s -S -L -o "${PYTHON_PATCH2_FILE}" "${PYTHON_PATCH2_URL}/${PYTHON_PATCH2_FILE}" 2>&1`
           rc=$?; CheckRC
-
+          # ---
+          set -e
           cd "${PYTHON_SRC_DIR}"
+
           ApplyPatch \
             ${PYTHON_PATCH1_FILE} \
             ${PYTHON_PATCH2_FILE}
-
-          set -e
-          printf "Deleting unneded files... "
+          # ---
+          msg_info "Removing unneded files"
           cd "${PYTHON_SRC_DIR}/include"
           rm -f README.rst pydtrace.d
-          echo 'ok'
-          exit 1
+          op_ok
 
       - name: Build
-        if: ${{ true }}
+        if: ${{ false }}
         shell: cmd
         run: |
           cd "%GITHUB_WORKSPACE%\%PYTHON_DIR%"
@@ -128,40 +131,52 @@ jobs:
       - name: Make artifact
         if: ${{ true }}
         run: |
+          source "$LIB_MCP"; if (( $? )); then echo -n "\nFATAL ERROR: Unable to load library \"${LIB_MCP}\"!"; exit 1; fi
           set -e
-          shopt -s globstar
           # ---
-          echo "Creating directories..."
+          msg_info "Creating directories"
           mkdir -p "${ARTIFACT_DIR}"
           mkdir -p "${ARTIFACT_DIR}/DLLs"
           mkdir -p "${ARTIFACT_DIR}/include"
           mkdir -p "${ARTIFACT_DIR}/Lib"
           mkdir -p "${ARTIFACT_DIR}/libs"
+          op_ok
           # ---
           cd "$PYTHON_BLD_DIR"
 
-          echo "Deleting unneeded files..."
+          msg_info "Removing unneeded files"
           rm -f pybuilddir.txt _test*.* _freeze*.*
-          rm -f -r -- **/*.pdb
-          rm -f -r -- **/*.exp
+          rm -f -r *.pdb
+          rm -f -r *.exp
+          op_ok
 
-          echo "Copying bin files..."
+          msg_info "Copying bin files"
           cp -a --parents *.exe *.txt py*.dll vcruntime*.dll "${ARTIFACT_DIR}"
           rm py*.dll vcruntime*.dll
+          op_ok
 
-          echo "Copying dll files..."
+          msg_info "Copying dll files"
           cp -a --parents *.dll *.pyd "${ARTIFACT_DIR}/DLLs"
+          op_ok
 
-          echo "Copying libs files..."
+          msg_info "Copying libs files"
           cp -a --parents *.lib "${ARTIFACT_DIR}/libs"
+          op_ok
           # ---
-          echo "Copying 'include' dir content..."
+          msg_info "Copying 'include' dir content"
           cd "${PYTHON_SRC_DIR}/include"
           cp -a --parents * "${ARTIFACT_DIR}/include"
+          op_ok
           # ---
-          echo "Copying 'Lib' dir content..."
+          msg_info "Copying 'pyconfig.h' file"
+          cd "${PYTHON_SRC_DIR}/PC"
+          cp -a pyconfig.h "${ARTIFACT_DIR}/include"
+          op_ok
+          # ---
+          msg_info "Copying 'Lib' dir content"
           cd "${PYTHON_SRC_DIR}/Lib"
           cp -a --parents * "${ARTIFACT_DIR}/Lib"
+          op_ok
 
       - name: ${{ format('Upload artifact {0}', env.ARTIFACT_NAME) }}
         if: ${{ true }}
