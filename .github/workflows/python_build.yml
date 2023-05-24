@@ -52,6 +52,11 @@ jobs:
           declare -i rc=0
           declare resp=""
 
+          function ll()
+          {
+            ls -a -g -o --group-directories-first --time-style=long-iso "$@" | sed -E '2,$s/ +[0-9]+//'
+          }
+
           function CheckRC()
           {
             if (( rc )); then
@@ -87,7 +92,7 @@ jobs:
           END
 
       - name: Checkout repo
-        if: ${{ true }}
+        if: ${{ false }}
         uses: actions/checkout@v3
         with:
           repository: python/cpython
@@ -108,6 +113,8 @@ jobs:
           msg_info "Retrieving patch file '${PYTHON_PATCH2_FILE}'"
           resp=`curl -f -s -S -L -o "${PYTHON_PATCH2_FILE}" "${PYTHON_PATCH2_URL}/${PYTHON_PATCH2_FILE}" 2>&1`
           rc=$?; CheckRC
+          ll
+          exit 1
           # ---
           set -e
           cd "${PYTHON_SRC_DIR}"
