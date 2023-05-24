@@ -1,25 +1,18 @@
 diff -au a/Modules/_winapi.c b/Modules/_winapi.c
 --- a/Modules/_winapi.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Modules/_winapi.c	2023-05-25 00:19:57.760489600 +0200
-@@ -41,6 +41,7 @@
++++ b/Modules/_winapi.c	2023-05-25 01:20:54.173624500 +0200
+@@ -41,6 +41,11 @@
  
  #define WINDOWS_LEAN_AND_MEAN
  #include "windows.h"
-+#include <winnls.h>
++/* <winnls.h> */
++#if WINVER < 0x0602
++#define LCMAP_SORTHANDLE 0x20000000
++#define LCMAP_HASH 0x00040000
++#endif
  #include <crtdbg.h>
  #include "winreparse.h"
  
-@@ -67,6 +68,10 @@
- static int has_CancelIoEx = -1;
- static BOOL (CALLBACK *Py_CancelIoEx)(HANDLE, LPOVERLAPPED);
- 
-+#if !defined(LCMAP_SORTHANDLE)
-+#error "LCMAP_SORTHANDLE not defined"
-+#endif
-+
- static int
- check_CancelIoEx()
- {
 diff -au a/Modules/getpath.c b/Modules/getpath.c
 --- a/Modules/getpath.c	2023-04-05 00:22:17.000000000 +0200
 +++ b/Modules/getpath.c	2023-05-25 01:05:33.309954100 +0200
