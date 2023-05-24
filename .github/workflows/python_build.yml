@@ -51,16 +51,55 @@ jobs:
 
     - name: Create MCP shell script
       run: |
-        exit 1
+          cat > ${LIB_MCP} <<EOF
+        set +e
+        declare -i rc=0
+        declare resp=""
+
+        function ll()
+        {
+          ls -a -g -o --group-directories-first --time-style=long-iso "\$@"
+        }
+
+        function CheckRC()
+        {
+          if (( rc )); then
+            op_failed
+            printf "\nAn error has occurred!\n\n"
+            printf "Code %s\n%s\n" \$rc "\$resp"
+            exit 1
+          fi
+          # ---
+          op_ok
+        }
+
+        function msg_info()
+        {
+          printf "%s... " "\$1"
+        }
+
+        function ApplyPatch()
+        {
+          for _patch in "\$@"; do
+            echo "Applying \$_patch"
+            patch -Np1 -i "\${G_WORKSPACE}/\$_patch"
+          done
+        }
+
+        function op_ok()     { _op_status "ok"     "\${@}"; }
+        function op_failed() { _op_status "failed" "\${@}"; }
+
+        function _op_status()
+        {
+            printf "%s\n" "\$1"
+        }
+        EOF
 
   build_win32:
     name: 'Windows (x86)'
     runs-on: windows-latest
     needs: initialize
     steps:
-    - name: test
-      shell: bash
-      run: exit 1
     - name: Checkout repo
       if: ${{ true }}
       uses: actions/checkout@v3
