@@ -19,7 +19,7 @@ jobs:
         PYTHON_PATCH1_URL: "https://raw.githubusercontent.com/msys2/MSYS2-packages/master/python/"
         PYTHON_PATCH1_FILE: "009-3.8-export-PySignal_SetWakeupFd.patch"
         PYTHON_PATCH2_URL: "https://raw.githubusercontent.com/sysfce2/winports/main/packages/msys2/python/"
-        PYTHON_PATCH2_FILE: "restore-windows-7-support-for-python${{ env.PYTHON_VER }}.patch"
+        PYTHON_PATCH2_FILE: "restore-windows-7-support-for-python%s.patch"
 
     steps:
       - name: Initialize
@@ -37,6 +37,10 @@ jobs:
           echo "ARTIFACT_NAME=Python" >> "$GITHUB_ENV"
           ARTIFACT_DIR="${G_WORKSPACE}/artifact"
           echo "ARTIFACT_DIR=${ARTIFACT_DIR}" >> "$GITHUB_ENV"
+
+          PYTHON_PATCH2_FILE="${PYTHON_PATCH2_FILE//'%s'/"${PYTHON_VER}"}"
+          echo "PYTHON_PATCH2_FILE: $PYTHON_PATCH2_FILE"
+          exit 1
 
       - name: Checkout repo
         if: ${{ true }}
