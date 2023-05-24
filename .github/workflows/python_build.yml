@@ -47,7 +47,7 @@ jobs:
       - name: Fix repo
         if: ${{ true }}
         shell: bash
-        run:
+        run: |
           set +e
           declare -i rc=0
           declare resp=""
@@ -55,13 +55,13 @@ jobs:
           function CheckRC()
           {
             if (( rc )); then
-              echo "failed"
-            	printf "\nAn error has occurred!\n\n"
-	            printf "Code %s\n%s\n" $rc "$resp"
-	            exit 1
-	          fi
+              echo 'failed'
+              printf "\nAn error has occurred!\n\n"
+              printf "Code %s\n%s\n" $rc "$resp"
+              exit 1
+            fi
             # ---
-            echo "ok"
+            echo 'ok'
           }
 
           function apply_patch()
