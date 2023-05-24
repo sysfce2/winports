@@ -5,199 +5,208 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_DIR: cpython
+  PYTHON_VER: 3.11.3
+  PYTHON_PATCH1_URL: "https://raw.githubusercontent.com/msys2/MSYS2-packages/master/python/"
+  PYTHON_PATCH1_FILE: "009-3.8-export-PySignal_SetWakeupFd.patch"
+  PYTHON_PATCH2_URL: "https://raw.githubusercontent.com/sysfce2/winports/main/packages/msys2/python/"
+  PYTHON_PATCH2_FILE: "restore-windows-7-support-for-python%s.patch"
+
 jobs:
-  build:
-    runs-on: windows-2019
-
-    concurrency:
-      group: '${{ github.head_ref }}-windows-x64'
-      cancel-in-progress: true
-
-    env:
-        PYTHON_DIR: cpython
-        PYTHON_VER: 3.11.3
-        PYTHON_PATCH1_URL: "https://raw.githubusercontent.com/msys2/MSYS2-packages/master/python/"
-        PYTHON_PATCH1_FILE: "009-3.8-export-PySignal_SetWakeupFd.patch"
-        PYTHON_PATCH2_URL: "https://raw.githubusercontent.com/sysfce2/winports/main/packages/msys2/python/"
-        PYTHON_PATCH2_FILE: "restore-windows-7-support-for-python%s.patch"
-
+  initialize:
+    name: 'Initialize'
+    runs-on: windows-latest
     defaults:
       run:
         shell: bash
-
     steps:
-      - name: Initialize
-        run: |
-          G_WORKSPACE="${GITHUB_WORKSPACE//'\'/'/'}"
-          echo "G_WORKSPACE=${G_WORKSPACE}" >> "$GITHUB_ENV"
-          
-          PYTHON_SRC_DIR="${G_WORKSPACE}/${PYTHON_DIR}"
-          echo "PYTHON_SRC_DIR=${PYTHON_SRC_DIR}" >> "$GITHUB_ENV"
+    - name: Setup env vars
+      run: |
+        G_WORKSPACE="${GITHUB_WORKSPACE//'\'/'/'}"
+        echo "G_WORKSPACE=${G_WORKSPACE}" >> "$GITHUB_ENV"
+        
+        PYTHON_SRC_DIR="${G_WORKSPACE}/${PYTHON_DIR}"
+        echo "PYTHON_SRC_DIR=${PYTHON_SRC_DIR}" >> "$GITHUB_ENV"
 
-          PYTHON_BLD_DIR="${PYTHON_SRC_DIR}/PCbuild/win32"
-          echo "PYTHON_BLD_DIR=${PYTHON_BLD_DIR}" >> "$GITHUB_ENV"
+        PYTHON_BLD_DIR="${PYTHON_SRC_DIR}/PCbuild/win32"
+        echo "PYTHON_BLD_DIR=${PYTHON_BLD_DIR}" >> "$GITHUB_ENV"
 
-          echo "ARTIFACT_NAME=Python v${PYTHON_VER}" >> "$GITHUB_ENV"
-          ARTIFACT_DIR="${G_WORKSPACE}/artifact"
-          echo "ARTIFACT_DIR=${ARTIFACT_DIR}" >> "$GITHUB_ENV"
+        echo "ARTIFACT_NAME=Python v${PYTHON_VER}" >> "$GITHUB_ENV"
+        ARTIFACT_DIR="${G_WORKSPACE}/artifact"
+        echo "ARTIFACT_DIR=${ARTIFACT_DIR}" >> "$GITHUB_ENV"
 
-          PYTHON_PATCH2_FILE="${PYTHON_PATCH2_FILE//'%s'/"${PYTHON_VER}"}"
-          echo "PYTHON_PATCH2_FILE=${PYTHON_PATCH2_FILE}" >> "$GITHUB_ENV"
+        PYTHON_PATCH2_FILE="${PYTHON_PATCH2_FILE//'%s'/"${PYTHON_VER}"}"
+        echo "PYTHON_PATCH2_FILE=${PYTHON_PATCH2_FILE}" >> "$GITHUB_ENV"
 
-          LIB_MCP="${TEMP}/mcp.sh"
-          echo "LIB_MCP=${LIB_MCP}" >> "$GITHUB_ENV"
+        LIB_MCP="${TEMP}/mcp.sh"
+        echo "LIB_MCP=${LIB_MCP}" >> "$GITHUB_ENV"
+
+    - name: Create '${LIB_MCP}' shell script
+      run: |
+          cat > ${LIB_MCP} <<EOF
+        set +e
+        declare -i rc=0
+        declare resp=""
+
+        function ll()
+        {
+          ls -a -g -o --group-directories-first --time-style=long-iso "\$@"
+        }
+
+        function CheckRC()
+        {
+          if (( rc )); then
+            op_failed
+            printf "\nAn error has occurred!\n\n"
+            printf "Code %s\n%s\n" \$rc "\$resp"
+            exit 1
+          fi
           # ---
-            cat > ${LIB_MCP} <<EOF
-          set +e
-          declare -i rc=0
-          declare resp=""
-
-          function ll()
-          {
-            ls -a -g -o --group-directories-first --time-style=long-iso "\$@"
-          }
-
-          function CheckRC()
-          {
-            if (( rc )); then
-              op_failed
-              printf "\nAn error has occurred!\n\n"
-              printf "Code %s\n%s\n" \$rc "\$resp"
-              exit 1
-            fi
-            # ---
-            op_ok
-          }
-
-          function msg_info()
-          {
-            printf "%s... " "\$1"
-          }
-
-          function ApplyPatch()
-          {
-            for _patch in "\$@"; do
-              echo "Applying \$_patch"
-              patch -Np1 -i "\${G_WORKSPACE}/\$_patch"
-            done
-          }
-
-          function op_ok()     { _op_status "ok"     "\${@}"; }
-          function op_failed() { _op_status "failed" "\${@}"; }
-
-          function _op_status()
-          {
-              printf "%s\n" "\$1"
-          }
-          EOF
-
-      - name: Checkout repo
-        if: ${{ true }}
-        uses: actions/checkout@v3
-        with:
-          repository: python/cpython
-          ref: v${{ env.PYTHON_VER }}
-          path: ${{ env.PYTHON_DIR }}
-
-      - name: Prepare
-        if: ${{ true }}
-        run: |
-          source "$LIB_MCP"; if (( $? )); then echo -n "\nFATAL ERROR: Unable to load library \"${LIB_MCP}\"!"; exit 1; fi
-          # ---
-          cd "${G_WORKSPACE}"
-
-          msg_info "Retrieving patch file '${PYTHON_PATCH1_FILE}'"
-          resp=`curl -f -s -S -L -o "${PYTHON_PATCH1_FILE}" "${PYTHON_PATCH1_URL}/${PYTHON_PATCH1_FILE}" 2>&1`
-          rc=$?; CheckRC
-          # ---
-          msg_info "Retrieving patch file '${PYTHON_PATCH2_FILE}'"
-          resp=`curl -f -s -S -L -o "${PYTHON_PATCH2_FILE}" "${PYTHON_PATCH2_URL}/${PYTHON_PATCH2_FILE}" 2>&1`
-          rc=$?; CheckRC
-          # ---
-          set -e
-          cd "${PYTHON_SRC_DIR}"
-
-          ApplyPatch \
-            ${PYTHON_PATCH1_FILE} \
-            ${PYTHON_PATCH2_FILE}
-
-      - name: Build
-        if: ${{ true }}
-        shell: cmd
-        run: |
-          cd "%GITHUB_WORKSPACE%\%PYTHON_DIR%\PCbuild"
-          build.bat -e -v -c Release -p Win32
-
-      - name: Check
-        if: ${{ true }}
-        shell: cmd
-        run: |
-          cd "%GITHUB_WORKSPACE%\%PYTHON_DIR%\PCbuild"
-          rt.bat -q -p Win32
-
-      - name: Make artifact
-        if: ${{ true }}
-        run: |
-          source "$LIB_MCP"; if (( $? )); then echo -n "\nFATAL ERROR: Unable to load library \"${LIB_MCP}\"!"; exit 1; fi
-          set -e
-          # ---
-          msg_info "Creating directories"
-            mkdir -p "${ARTIFACT_DIR}"
-            mkdir -p "${ARTIFACT_DIR}/DLLs"
-            mkdir -p "${ARTIFACT_DIR}/include"
-            mkdir -p "${ARTIFACT_DIR}/Lib"
-            mkdir -p "${ARTIFACT_DIR}/libs"
           op_ok
-          # ---
-          msg_info "Removing unneeded files"
-            cd "${PYTHON_SRC_DIR}/include"
-            rm -f README.rst pydtrace.d cpython/pyerrors.h.orig
+        }
 
-            cd "${PYTHON_BLD_DIR}"
-            rm -f _test*.*
-            rm -f _freeze*.*
-            rm -f *.pdb
-            rm -f *.exp
-          op_ok
-          # ---
-          cd "$PYTHON_BLD_DIR"
+        function msg_info()
+        {
+          printf "%s... " "\$1"
+        }
 
-          msg_info "Copying bin files"
-            cp -a *.exe py*.dll vcruntime*.dll "${ARTIFACT_DIR}"
-            rm py*.dll vcruntime*.dll
-          op_ok
+        function ApplyPatch()
+        {
+          for _patch in "\$@"; do
+            echo "Applying \$_patch"
+            patch -Np1 -i "\${G_WORKSPACE}/\$_patch"
+          done
+        }
 
-          msg_info "Copying txt file"
-            cp -a LICENSE.txt NEWS.txt "${ARTIFACT_DIR}"
-          op_ok
+        function op_ok()     { _op_status "ok"     "\${@}"; }
+        function op_failed() { _op_status "failed" "\${@}"; }
 
-          msg_info "Copying dll files"
-            cp -a *.dll *.pyd "${ARTIFACT_DIR}/DLLs"
-          op_ok
+        function _op_status()
+        {
+            printf "%s\n" "\$1"
+        }
+        EOF
 
-          msg_info "Copying libs files"
-            cp -a *.lib "${ARTIFACT_DIR}/libs"
-          op_ok
-          # ---
-          msg_info "Copying 'include' dir content"
-            cd "${PYTHON_SRC_DIR}/include"
-            cp -a --parents * "${ARTIFACT_DIR}/include"
-          op_ok
-          # ---
-          msg_info "Copying 'pyconfig.h' file"
-            cd "${PYTHON_SRC_DIR}/PC"
-            cp -a -f pyconfig.h "${ARTIFACT_DIR}/include"
-          op_ok
-          # ---
-          msg_info "Copying 'Lib' dir content"
-            cd "${PYTHON_SRC_DIR}/Lib"
-            cp -a --parents * "${ARTIFACT_DIR}/Lib"
-          op_ok
+  build_win32:
+    name: 'Windows (x86)'
+    runs-on: windows-latest
+    needs: inizialize
+    steps:
+    - name: Checkout repo
+      if: ${{ true }}
+      uses: actions/checkout@v3
+      with:
+        repository: python/cpython
+        ref: v${{ env.PYTHON_VER }}
+        path: ${{ env.PYTHON_DIR }}
 
-      - name: ${{ format('Upload artifact {0}', env.ARTIFACT_NAME) }}
-        if: ${{ true }}
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACT_DIR }}
-          if-no-files-found: error
+    - name: Prepare
+      shell: bash
+      if: ${{ true }}
+      run: |
+        source "$LIB_MCP"; if (( $? )); then echo -n "\nFATAL ERROR: Unable to load library \"${LIB_MCP}\"!"; exit 1; fi
+        # ---
+        cd "${G_WORKSPACE}"
+
+        msg_info "Retrieving patch file '${PYTHON_PATCH1_FILE}'"
+        resp=`curl -f -s -S -L -o "${PYTHON_PATCH1_FILE}" "${PYTHON_PATCH1_URL}/${PYTHON_PATCH1_FILE}" 2>&1`
+        rc=$?; CheckRC
+        # ---
+        msg_info "Retrieving patch file '${PYTHON_PATCH2_FILE}'"
+        resp=`curl -f -s -S -L -o "${PYTHON_PATCH2_FILE}" "${PYTHON_PATCH2_URL}/${PYTHON_PATCH2_FILE}" 2>&1`
+        rc=$?; CheckRC
+        # ---
+        set -e
+        cd "${PYTHON_SRC_DIR}"
+
+        ApplyPatch \
+          ${PYTHON_PATCH1_FILE} \
+          ${PYTHON_PATCH2_FILE}
+
+    - name: Build
+      if: ${{ true }}
+      run: .\PCbuild\build.bat -e -v -p Win32
+      timeout-minutes: 30
+
+    - name: Display build info
+      run: .\python.bat -m test.pythoninfo
+
+    - name: Tests
+      if: ${{ true }}
+      run: .\PCbuild\rt.bat -p Win32 -q -uall -u-cpu -rwW --slowest --timeout=1200 -j0
+
+    - name: Make artifact
+      if: ${{ true }}
+      shell: bash
+      run: |
+        source "$LIB_MCP"; if (( $? )); then echo -n "\nFATAL ERROR: Unable to load library \"${LIB_MCP}\"!"; exit 1; fi
+        set -e
+        # ---
+        msg_info "Creating directories"
+          mkdir -p "${ARTIFACT_DIR}"
+          mkdir -p "${ARTIFACT_DIR}/DLLs"
+          mkdir -p "${ARTIFACT_DIR}/include"
+          mkdir -p "${ARTIFACT_DIR}/Lib"
+          mkdir -p "${ARTIFACT_DIR}/libs"
+        op_ok
+        # ---
+        msg_info "Removing unneeded files"
+          cd "${PYTHON_SRC_DIR}/include"
+          rm -f README.rst pydtrace.d cpython/pyerrors.h.orig
+
+          cd "${PYTHON_BLD_DIR}"
+          rm -f _test*.*
+          rm -f _freeze*.*
+          rm -f *.pdb
+          rm -f *.exp
+        op_ok
+        # ---
+        cd "$PYTHON_BLD_DIR"
+
+        msg_info "Copying bin files"
+          cp -a *.exe py*.dll vcruntime*.dll "${ARTIFACT_DIR}"
+          rm py*.dll vcruntime*.dll
+        op_ok
+
+        msg_info "Copying txt file"
+          cp -a LICENSE.txt NEWS.txt "${ARTIFACT_DIR}"
+        op_ok
+
+        msg_info "Copying dll files"
+          cp -a *.dll *.pyd "${ARTIFACT_DIR}/DLLs"
+        op_ok
+
+        msg_info "Copying libs files"
+          cp -a *.lib "${ARTIFACT_DIR}/libs"
+        op_ok
+        # ---
+        msg_info "Copying 'include' dir content"
+          cd "${PYTHON_SRC_DIR}/include"
+          cp -a --parents * "${ARTIFACT_DIR}/include"
+        op_ok
+        # ---
+        msg_info "Copying 'pyconfig.h' file"
+          cd "${PYTHON_SRC_DIR}/PC"
+          cp -a -f pyconfig.h "${ARTIFACT_DIR}/include"
+        op_ok
+        # ---
+        msg_info "Copying 'Lib' dir content"
+          cd "${PYTHON_SRC_DIR}/Lib"
+          cp -a --parents * "${ARTIFACT_DIR}/Lib"
+        op_ok
+
+    - name: ${{ format('Upload artifact {0}', env.ARTIFACT_NAME) }}
+      if: ${{ true }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.ARTIFACT_NAME }}
+        path: ${{ env.ARTIFACT_DIR }}
+        if-no-files-found: error

@@ -236,25 +236,150 @@ diff -au a/PC/pyconfig.h b/PC/pyconfig.h
     these values on extensions, as that will affect the prototypes and
 diff -au a/PCbuild/_freeze_module.vcxproj b/PCbuild/_freeze_module.vcxproj
 --- a/PCbuild/_freeze_module.vcxproj	2023-04-05 00:22:17.000000000 +0200
-+++ b/PCbuild/_freeze_module.vcxproj	2023-05-24 21:27:38.552120700 +0200
++++ b/PCbuild/_freeze_module.vcxproj	2023-05-24 21:39:27.398664400 +0200
 @@ -94,7 +94,7 @@
      </ClCompile>
      <Link>
        <SubSystem>Console</SubSystem>
 -      <AdditionalDependencies>version.lib;ws2_32.lib;pathcch.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
-+      <AdditionalDependencies>version.lib;shlwapi.lib;ws2_32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
++      <AdditionalDependencies>version.lib;ws2_32.lib;shlwapi.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
        <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+     </Link>
+   </ItemDefinitionGroup>
+diff -au a/PCbuild/pylauncher.vcxproj b/PCbuild/pylauncher.vcxproj
+--- a/PCbuild/pylauncher.vcxproj	2023-04-05 00:22:17.000000000 +0200
++++ b/PCbuild/pylauncher.vcxproj	2023-05-24 21:39:56.283316500 +0200
+@@ -95,7 +95,7 @@
+       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+     </ClCompile>
+     <Link>
+-      <AdditionalDependencies>shell32.lib;pathcch.lib;%(AdditionalDependencies)</AdditionalDependencies>
++      <AdditionalDependencies>shell32.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+       <SubSystem>Console</SubSystem>
      </Link>
    </ItemDefinitionGroup>
 diff -au a/PCbuild/pythoncore.vcxproj b/PCbuild/pythoncore.vcxproj
 --- a/PCbuild/pythoncore.vcxproj	2023-04-05 00:22:17.000000000 +0200
-+++ b/PCbuild/pythoncore.vcxproj	2023-05-24 07:48:24.834688900 +0200
++++ b/PCbuild/pythoncore.vcxproj	2023-05-24 21:40:20.173683000 +0200
 @@ -106,7 +106,7 @@
        <PreprocessorDefinitions Condition="$(IncludeExternals)">_Py_HAVE_ZLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
      </ClCompile>
      <Link>
 -      <AdditionalDependencies>version.lib;ws2_32.lib;pathcch.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
-+      <AdditionalDependencies>version.lib;shlwapi.lib;ws2_32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
++      <AdditionalDependencies>version.lib;ws2_32.lib;shlwapi.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
      </Link>
    </ItemDefinitionGroup>
    <ItemGroup>
+diff -au a/PCbuild/pywlauncher.vcxproj b/PCbuild/pywlauncher.vcxproj
+--- a/PCbuild/pywlauncher.vcxproj	2023-04-05 00:22:17.000000000 +0200
++++ b/PCbuild/pywlauncher.vcxproj	2023-05-24 21:40:34.634510100 +0200
+@@ -95,7 +95,7 @@
+       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+     </ClCompile>
+     <Link>
+-      <AdditionalDependencies>shell32.lib;pathcch.lib;%(AdditionalDependencies)</AdditionalDependencies>
++      <AdditionalDependencies>shell32.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+       <SubSystem>Windows</SubSystem>
+     </Link>
+   </ItemDefinitionGroup>
+diff -au a/Python/fileutils.c b/Python/fileutils.c
+--- a/Python/fileutils.c	2023-04-05 00:22:17.000000000 +0200
++++ b/Python/fileutils.c	2023-05-24 22:36:15.967623400 +0200
+@@ -8,7 +8,8 @@
+ #ifdef MS_WINDOWS
+ #  include <malloc.h>
+ #  include <windows.h>
+-#  include <pathcch.h>            // PathCchCombineEx
++#  include <Shlwapi.h>
++#define PATHCCH_ALLOW_LONG_PATHS 0x00000001
+ extern int winerror_to_errno(int);
+ #endif
+ 
+@@ -2000,12 +2001,36 @@
+ #endif
+ 
+ 
++#ifdef MS_WINDOWS
++static int _PathCchSkipRoot_Initialized = 0;
++typedef HRESULT (__stdcall *PPathCchSkipRoot) (PCWSTR pszPath, PCWSTR *ppszRootEnd);
++static PPathCchSkipRoot PathCchSkipRoot;
++#endif
++
+ int
+ _Py_isabs(const wchar_t *path)
+ {
+ #ifdef MS_WINDOWS
+     const wchar_t *tail;
+-    HRESULT hr = PathCchSkipRoot(path, &tail);
++    if (_PathCchSkipRoot_Initialized == 0) {
++        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
++        if (pathapi) {
++            PathCchSkipRoot = (PPathCchSkipRoot)GetProcAddress(pathapi, "PathCchSkipRoot");
++        } else {
++            PathCchSkipRoot = NULL;
++        }
++
++        _PathCchSkipRoot_Initialized = 1;
++    }
++	HRESULT hr = 0;
++  if (PathCchSkipRoot) {
++    hr = PathCchSkipRoot(path, &tail);
++  } else {
++    tail = PathSkipRootW(path);
++    if (!tail) {
++        hr = E_FAIL;
++    }
++  }
+     if (FAILED(hr) || path == tail) {
+         return 0;
+     }
+@@ -2086,6 +2111,11 @@
+ #endif
+ }
+ 
++#ifdef MS_WINDOWS
++static int _PathCchCombineEx_Initialized = 0;
++typedef HRESULT(__stdcall *PPathCchCombineEx) (PWSTR pszPathOut, size_t cchPathOut, PCWSTR pszPathIn, PCWSTR pszMore, unsigned long dwFlags);
++static PPathCchCombineEx PathCchCombineEx;
++#endif
+ 
+ // The caller must ensure "buffer" is big enough.
+ static int
+@@ -2093,10 +2123,26 @@
+              const wchar_t *dirname, const wchar_t *relfile)
+ {
+ #ifdef MS_WINDOWS
++    if (_PathCchCombineEx_Initialized == 0) {
++        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
++        if (pathapi) {
++            PathCchCombineEx = (PPathCchCombineEx)GetProcAddress(pathapi, "PathCchCombineEx");
++        }
++        else {
++            PathCchCombineEx = NULL;
++        }
++        _PathCchCombineEx_Initialized = 1;
++    }
++  if (PathCchCombineEx) {
+     if (FAILED(PathCchCombineEx(buffer, bufsize, dirname, relfile,
+         PATHCCH_ALLOW_LONG_PATHS))) {
+         return -1;
+     }
++  } else {
++    if (!PathCombineW(buffer, dirname, relfile)) {
++        return -1;
++    }
++  }
+ #else
+     assert(!_Py_isabs(relfile));
+     size_t dirlen = wcslen(dirname);
+diff -au a/Python/pathconfig.c b/Python/pathconfig.c
+--- a/Python/pathconfig.c	2023-04-05 00:22:17.000000000 +0200
++++ b/Python/pathconfig.c	2023-05-24 22:36:53.265756800 +0200
+@@ -10,7 +10,6 @@
+ #include <wchar.h>
+ #ifdef MS_WINDOWS
+ #  include <windows.h>            // GetFullPathNameW(), MAX_PATH
+-#  include <pathcch.h>
+ #  include <shlwapi.h>
+ #endif
+ 
