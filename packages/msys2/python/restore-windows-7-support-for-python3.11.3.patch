@@ -12,7 +12,7 @@ diff -au a/Modules/getpath.c b/Modules/getpath.c
  #ifdef __APPLE__
 diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
 --- a/Modules/posixmodule.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Modules/posixmodule.c	2023-05-24 07:39:35.214396400 +0200
++++ b/Modules/posixmodule.c	2023-05-24 18:44:29.045193000 +0200
 @@ -15,7 +15,7 @@
  // whereas pycore_condvar.h defines the WIN32_LEAN_AND_MEAN macro.
  #ifdef MS_WINDOWS
@@ -28,37 +28,28 @@ diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
  
 +static int _PathCchSkipRoot_Initialized = 0;
 +typedef HRESULT (__stdcall *PPathCchSkipRoot) (PCWSTR pszPath, PCWSTR *ppszRootEnd);
-+static PPathCchSkipRoot _PathCchSkipRoot;
++static PPathCchSkipRoot PathCchSkipRoot;
 +
  static PyObject *
  os__path_splitroot_impl(PyObject *module, path_t *path)
  /*[clinic end generated code: output=ab7f1a88b654581c input=dc93b1d3984cffb6]*/
-@@ -4489,6 +4493,18 @@
-     PyObject *result = NULL;
-     HRESULT ret;
+@@ -4498,8 +4502,25 @@
+         *p = L'\\';
+     }
  
 +    if (_PathCchSkipRoot_Initialized == 0) {
-+        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL,
-+                                         LOAD_LIBRARY_SEARCH_SYSTEM32);
++        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
 +        if (pathapi) {
-+            _PathCchSkipRoot = (PPathCchSkipRoot)GetProcAddress(pathapi, "PathCchSkipRoot");
++            PathCchSkipRoot = (PPathCchSkipRoot)GetProcAddress(pathapi, "PathCchSkipRoot");
 +        } else {
-+            _PathCchSkipRoot = NULL;
++            PathCchSkipRoot = NULL;
 +        }
 +
 +        _PathCchSkipRoot_Initialized = 1;
 +    }
-+
-     buffer = (wchar_t*)PyMem_Malloc(sizeof(wchar_t) * (wcslen(path->wide) + 1));
-     if (!buffer) {
-         return NULL;
-@@ -4499,7 +4515,14 @@
-     }
- 
      Py_BEGIN_ALLOW_THREADS
--    ret = PathCchSkipRoot(buffer, &end);
-+  if (_PathCchSkipRoot) {
-+    ret = _PathCchSkipRoot(buffer, &end);
++  if (PathCchSkipRoot) {
+     ret = PathCchSkipRoot(buffer, &end);
 +  } else {
 +    end = PathSkipRootW(buffer);
 +    if (!end) {
@@ -70,7 +61,7 @@ diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
          result = Py_BuildValue("sO", "", path->object);
 diff -au a/PC/launcher2.c b/PC/launcher2.c
 --- a/PC/launcher2.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/PC/launcher2.c	2023-05-24 06:46:18.279542100 +0200
++++ b/PC/launcher2.c	2023-05-24 18:55:52.601290100 +0200
 @@ -9,7 +9,8 @@
  #define __STDC_WANT_LIB_EXT1__ 1
  
@@ -81,71 +72,73 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
  #include <fcntl.h>
  #include <io.h>
  #include <shlobj.h>
-@@ -42,6 +43,17 @@
+@@ -42,6 +43,14 @@
  
  static FILE * log_fp = NULL;
  
 +static int _PathCchCombineEx_Initialized = 0;
-+typedef HRESULT(__stdcall *PPathCchCombineEx) (PWSTR pszPathOut, size_t cchPathOut,
-+                                               PCWSTR pszPathIn, PCWSTR pszMore,
-+                                               unsigned long dwFlags);
-+static PPathCchCombineEx _PathCchCombineEx;
++typedef HRESULT(__stdcall *PPathCchCombineEx) (PWSTR pszPathOut, size_t cchPathOut, PCWSTR pszPathIn, PCWSTR pszMore, unsigned long dwFlags);
++static PPathCchCombineEx PathCchCombineEx;
 +
 +static int _PathCchRemoveFileSpec_Initialized = 0;
-+typedef HRESULT(__stdcall *PPathCchRemoveFileSpec) (PWSTR  pszPath,
-+                                                    size_t cchPath);
-+static PPathCchRemoveFileSpec _PathCchRemoveFileSpec;
++typedef HRESULT(__stdcall *PPathCchRemoveFileSpec) (PWSTR  pszPath, size_t cchPath);
++static PPathCchRemoveFileSpec PathCchRemoveFileSpec;
 +
  void
  debug(wchar_t * format, ...)
  {
-@@ -188,9 +200,26 @@
+@@ -188,9 +197,25 @@
  bool
  join(wchar_t *buffer, size_t bufferLength, const wchar_t *fragment)
  {
--    if (SUCCEEDED(PathCchCombineEx(buffer, bufferLength, buffer, fragment, PATHCCH_ALLOW_LONG_PATHS))) {
 +    if (_PathCchCombineEx_Initialized == 0) {
-+        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL,
-+                                         LOAD_LIBRARY_SEARCH_SYSTEM32);
++        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
 +        if (pathapi) {
-+            _PathCchCombineEx = (PPathCchCombineEx)GetProcAddress(pathapi, "PathCchCombineEx");
++            PathCchCombineEx = (PPathCchCombineEx)GetProcAddress(pathapi, "PathCchCombineEx");
 +        }
 +        else {
-+            _PathCchCombineEx = NULL;
++            PathCchCombineEx = NULL;
 +        }
 +        _PathCchCombineEx_Initialized = 1;
 +    }
-+  if (_PathCchCombineEx) {
-+    if (SUCCEEDED(_PathCchCombineEx(buffer, bufferLength, buffer, fragment, PATHCCH_ALLOW_LONG_PATHS))) {
-+        return true;
-+    }
-+  } else {
-+    if (PathCombineW(buffer, buffer, fragment)) {
++  if (PathCchCombineEx) {
+     if (SUCCEEDED(PathCchCombineEx(buffer, bufferLength, buffer, fragment, PATHCCH_ALLOW_LONG_PATHS))) {
          return true;
      }
++  } else {
++    if (PathCombineW(buffer, buffer, fragment)) {
++        return true;
++    }
 +  }
      return false;
  }
  
-@@ -853,8 +882,36 @@
+@@ -853,6 +878,18 @@
              winerror(0, L"Failed to read from %s\n", iniPath);
          }
      }
 +
 +    if (_PathCchRemoveFileSpec_Initialized == 0) {
-+        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL,
-+                                         LOAD_LIBRARY_SEARCH_SYSTEM32);
++        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
 +        if (pathapi) {
-+            _PathCchRemoveFileSpec = (PPathCchRemoveFileSpec)GetProcAddress(pathapi, "PathCchRemoveFileSpec");
++            PathCchRemoveFileSpec = (PPathCchRemoveFileSpec)GetProcAddress(pathapi, "PathCchRemoveFileSpec");
 +        }
 +        else {
-+            _PathCchRemoveFileSpec = NULL;
++            PathCchRemoveFileSpec = NULL;
 +        }
 +        _PathCchRemoveFileSpec_Initialized = 1;
 +    }
-+  if (_PathCchRemoveFileSpec) {
++  if (PathCchRemoveFileSpec) {
+     if (GetModuleFileNameW(NULL, iniPath, MAXLEN) &&
+         SUCCEEDED(PathCchRemoveFileSpec(iniPath, MAXLEN)) &&
+         join(iniPath, MAXLEN, L"py.ini")) {
+@@ -867,6 +904,22 @@
+             winerror(0, L"Failed to read from %s\n", iniPath);
+         }
+     }
++  } else {
 +    if (GetModuleFileNameW(NULL, iniPath, MAXLEN) &&
-+        SUCCEEDED(_PathCchRemoveFileSpec(iniPath, MAXLEN)) &&
++        PathRemoveFileSpecW(iniPath) &&
 +        join(iniPath, MAXLEN, L"py.ini")) {
 +        debug(L"# Reading from %s for %s/%s\n", iniPath, section, settingName);
 +        n = GetPrivateProfileStringW(section, settingName, NULL, buffer, MAXLEN, iniPath);
@@ -158,58 +151,32 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
 +            winerror(0, L"Failed to read from %s\n", iniPath);
 +        }
 +    }
-+  } else {
-     if (GetModuleFileNameW(NULL, iniPath, MAXLEN) &&
--        SUCCEEDED(PathCchRemoveFileSpec(iniPath, MAXLEN)) &&
-+        PathRemoveFileSpecW(iniPath) &&
-         join(iniPath, MAXLEN, L"py.ini")) {
-         debug(L"# Reading from %s for %s/%s\n", iniPath, section, settingName);
-         n = GetPrivateProfileStringW(section, settingName, NULL, buffer, MAXLEN, iniPath);
-@@ -867,6 +924,7 @@
-             winerror(0, L"Failed to read from %s\n", iniPath);
-         }
-     }
 +  }
      return 0;
  }
  
-@@ -921,17 +979,49 @@
+@@ -921,6 +974,20 @@
      }
      *pC = L'\0';
  
-+    if (_PathCchCombineEx_Initialized == 0) {
-+        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL,
-+                                         LOAD_LIBRARY_SEARCH_SYSTEM32);
++    if (_PathCchCombineEx_Initialized == 0 || _PathCchRemoveFileSpec_Initialized == 0) {
++        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
 +        if (pathapi) {
-+            _PathCchCombineEx = (PPathCchCombineEx)GetProcAddress(pathapi, "PathCchCombineEx");
++            PathCchCombineEx = (PPathCchCombineEx)GetProcAddress(pathapi, "PathCchCombineEx");
++            PathCchRemoveFileSpec = (PPathCchRemoveFileSpec)GetProcAddress(pathapi, "PathCchRemoveFileSpec");
 +        }
 +        else {
-+            _PathCchCombineEx = NULL;
++            PathCchCombineEx = NULL;
++            PathCchRemoveFileSpec = NULL;
 +        }
 +        _PathCchCombineEx_Initialized = 1;
-+    }
-+    if (_PathCchRemoveFileSpec_Initialized == 0) {
-+        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL,
-+                                         LOAD_LIBRARY_SEARCH_SYSTEM32);
-+        if (pathapi) {
-+            _PathCchRemoveFileSpec = (PPathCchRemoveFileSpec)GetProcAddress(pathapi, "PathCchRemoveFileSpec");
-+        }
-+        else {
-+            _PathCchRemoveFileSpec = NULL;
-+        }
 +        _PathCchRemoveFileSpec_Initialized = 1;
 +    }
-+  if (_PathCchCombineEx) {
++  if (PathCchCombineEx && PathCchRemoveFileSpec) {
      if (!GetCurrentDirectoryW(MAXLEN, buffer) ||
          wcsncpy_s(script, MAXLEN, search->scriptFile, search->scriptFileLength) ||
--        FAILED(PathCchCombineEx(buffer, MAXLEN, buffer, script,
-+        FAILED(_PathCchCombineEx(buffer, MAXLEN, buffer, script,
-                                 PATHCCH_ALLOW_LONG_PATHS)) ||
--        FAILED(PathCchRemoveFileSpec(buffer, MAXLEN)) ||
--        FAILED(PathCchCombineEx(buffer, MAXLEN, buffer, command,
-+        FAILED(_PathCchRemoveFileSpec(buffer, MAXLEN)) ||
-+        FAILED(_PathCchCombineEx(buffer, MAXLEN, buffer, command,
-                                 PATHCCH_ALLOW_LONG_PATHS))
+         FAILED(PathCchCombineEx(buffer, MAXLEN, buffer, script,
+@@ -931,7 +998,16 @@
      ) {
          return RC_NO_MEMORY;
      }
@@ -227,30 +194,28 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
      int n = (int)wcsnlen(buffer, MAXLEN);
      wchar_t *path = allocSearchInfoBuffer(search, n + 1);
      if (!path) {
-@@ -1419,9 +1509,26 @@
+@@ -1419,9 +1495,25 @@
          return RC_NO_MEMORY;
      }
  
--    if (FAILED(PathCchCombineEx(buffer, MAXLEN, installDir, fragmentBuffer, PATHCCH_ALLOW_LONG_PATHS))) {
 +    if (_PathCchCombineEx_Initialized == 0) {
-+        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL,
-+                                         LOAD_LIBRARY_SEARCH_SYSTEM32);
++        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
 +        if (pathapi) {
-+            _PathCchCombineEx = (PPathCchCombineEx)GetProcAddress(pathapi, "PathCchCombineEx");
++            PathCchCombineEx = (PPathCchCombineEx)GetProcAddress(pathapi, "PathCchCombineEx");
 +        }
 +        else {
-+            _PathCchCombineEx = NULL;
++            PathCchCombineEx = NULL;
 +        }
 +        _PathCchCombineEx_Initialized = 1;
 +    }
-+  if (_PathCchCombineEx) {
-+    if (FAILED(_PathCchCombineEx(buffer, MAXLEN, installDir, fragmentBuffer, PATHCCH_ALLOW_LONG_PATHS))) {
-+        return RC_NO_MEMORY;
-+    }
-+  } else {
-+    if (!PathCombineW(buffer, installDir, fragmentBuffer)) {
++  if (PathCchCombineEx) {
+     if (FAILED(PathCchCombineEx(buffer, MAXLEN, installDir, fragmentBuffer, PATHCCH_ALLOW_LONG_PATHS))) {
          return RC_NO_MEMORY;
      }
++  } else {
++    if (!PathCombineW(buffer, installDir, fragmentBuffer)) {
++        return RC_NO_MEMORY;
++    }
 +  }
  
      return copyWstr(dest, buffer);
