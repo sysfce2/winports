@@ -71,7 +71,8 @@ jobs:
 
           function msg_info()
           {
-              printf "%s... " "$1"
+            echo "arg: |$1|"
+            printf "%s... " "$1"
           }
 
           function ApplyPatch()
@@ -113,6 +114,7 @@ jobs:
           msg_info "Retrieving patch file '${PYTHON_PATCH2_FILE}'"
           resp=`curl -f -s -S -L -o "${PYTHON_PATCH2_FILE}" "${PYTHON_PATCH2_URL}/${PYTHON_PATCH2_FILE}" 2>&1`
           rc=$?; CheckRC
+          echo "PWD: $PWD"
           ll
           exit 1
           # ---
