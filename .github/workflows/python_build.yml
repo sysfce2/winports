@@ -16,8 +16,8 @@ jobs:
     env:
         PYTHON_DIR: cpython
         PYTHON_VER: v3.11.3
-        PYTHON_PATCH_009_FILE: 009-3.8-export-PySignal_SetWakeupFd.patch
-        PYTHON_PATCH_009_URL: https://raw.githubusercontent.com/msys2/MSYS2-packages/master/python/${PYTHON_PATCH_009_FILE}
+        PYTHON_PATCH_009_FILE: "009-3.8-export-PySignal_SetWakeupFd.patch"
+        PYTHON_PATCH_009_URL: "https://raw.githubusercontent.com/msys2/MSYS2-packages/master/python/${PYTHON_PATCH_009_FILE}"
 
     steps:
       - name: Initialize
@@ -37,7 +37,7 @@ jobs:
           echo "ARTIFACT_DIR=${ARTIFACT_DIR}" >> "$GITHUB_ENV"
 
       - name: Checkout repo
-        if: ${{ true }}
+        if: ${{ false }}
         uses: actions/checkout@v3
         with:
           repository: python/cpython
@@ -73,7 +73,7 @@ jobs:
           }
 
           printf "Retrieving patch file '${PYTHON_PATCH_009_FILE}'... "
-          resp=`curl -f -s -S -L -o "${G_WORKSPACE}/${PYTHON_PATCH_009_FILE}" "$PYTHON_PATCH_009_URL" 2>&1`
+          resp=`curl -f -s -S -L -o "${G_WORKSPACE}/${PYTHON_PATCH_009_FILE}" ${PYTHON_PATCH_009_URL} 2>&1`
           rc=$?; CheckRC
           ls -a -g -o --group-directories-first --time-style=long-iso "."
 
