@@ -51,11 +51,9 @@ jobs:
 
     - name: Create MCP shell script
       run: |
-          cat > ${LIB_MCP} <<EOF
         set +e
         declare -i rc=0
         declare resp=""
-        EOF
 
   build_win32:
     name: 'Windows (x86)'
