@@ -37,7 +37,7 @@ jobs:
           PYTHON_BLD_DIR="${PYTHON_SRC_DIR}/PCbuild/win32"
           echo "PYTHON_BLD_DIR=${PYTHON_BLD_DIR}" >> "$GITHUB_ENV"
 
-          echo "ARTIFACT_NAME=Python" >> "$GITHUB_ENV"
+          echo "ARTIFACT_NAME=Python v${PYTHON_VER}" >> "$GITHUB_ENV"
           ARTIFACT_DIR="${G_WORKSPACE}/artifact"
           echo "ARTIFACT_DIR=${ARTIFACT_DIR}" >> "$GITHUB_ENV"
 
@@ -174,7 +174,7 @@ jobs:
           # ---
           msg_info "Copying 'include' dir content"
           cd "${PYTHON_SRC_DIR}/include"
-          rm -f README.rst pydtrace.d
+          rm -f README.rst pydtrace.d cpython/pyerrors.h.orig
           cp -a --parents * "${ARTIFACT_DIR}/include"
           op_ok
           # ---
@@ -185,7 +185,7 @@ jobs:
           # ---
           msg_info "Copying 'Lib' dir content"
           cd "${PYTHON_SRC_DIR}/Lib"
-          rm -f -r __phello__
+          rm -f -r test
           cp -a --parents * "${ARTIFACT_DIR}/Lib"
           op_ok
 
