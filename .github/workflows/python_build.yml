@@ -85,10 +85,10 @@ jobs:
           rc=$?; CheckRC
 
           ls -a -g -o --group-directories-first --time-style=long-iso "."
+          ls -a -g -o --group-directories-first --time-style=long-iso "cpython"
 
-          ApplyPatch \
-            ${PYTHON_PATCH1_FILE} \
-            ${PYTHON_PATCH2_FILE}
+          cd "${PYTHON_SRC_DIR}"
+          ApplyPatch ${PYTHON_PATCH1_FILE}
 
           set -e
           printf "Deleting unneded files... "
