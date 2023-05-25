@@ -15,20 +15,24 @@ diff -au a/Modules/_winapi.c b/Modules/_winapi.c
  
 diff -au a/Modules/getpath.c b/Modules/getpath.c
 --- a/Modules/getpath.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Modules/getpath.c	2023-05-25 03:23:11.027268500 +0200
-@@ -12,6 +12,7 @@
++++ b/Modules/getpath.c	2023-05-25 04:06:33.333111900 +0200
+@@ -11,7 +11,11 @@
+ 
  #ifdef MS_WINDOWS
  #  include <windows.h>            // GetFullPathNameW(), MAX_PATH
++# if WINVER >= 0x0602 // Windows 8 or greater
  #  include <pathcch.h>
++# else // Windows 7
 +#  include <Shlwapi.h>
++# endif
  #endif
  
  #ifdef __APPLE__
-@@ -233,9 +234,16 @@
+@@ -233,9 +237,16 @@
  #ifdef MS_WINDOWS
          const wchar_t *ext;
          DWORD attr = GetFileAttributesW(path);
-+  #if WINVER < 0x0602 // Windows 7
++  #if WINVER < 0x0602 // Windows 7 or earlier
 +        ext = PathFindExtensionW(path);
 +  #endif
          r = (attr != INVALID_FILE_ATTRIBUTES) &&
@@ -43,16 +47,20 @@ diff -au a/Modules/getpath.c b/Modules/getpath.c
  #else
 diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
 --- a/Modules/posixmodule.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Modules/posixmodule.c	2023-05-25 03:07:07.984185600 +0200
-@@ -16,6 +16,7 @@
++++ b/Modules/posixmodule.c	2023-05-25 04:03:59.505313400 +0200
+@@ -15,7 +15,11 @@
+ // whereas pycore_condvar.h defines the WIN32_LEAN_AND_MEAN macro.
  #ifdef MS_WINDOWS
  #  include <windows.h>
++# if WINVER >= 0x0602 // Windows 8 or greater
  #  include <pathcch.h>
++# else // Windows 7
 +#  include <Shlwapi.h>
++# endif
  #  include <lmcons.h>             // UNLEN
  #  include "osdefs.h"             // SEP
  #  define HAVE_SYMLINK
-@@ -4499,7 +4500,14 @@
+@@ -4499,7 +4503,14 @@
      }
  
      Py_BEGIN_ALLOW_THREADS
@@ -69,16 +77,20 @@ diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
          result = Py_BuildValue("sO", "", path->object);
 diff -au a/PC/launcher2.c b/PC/launcher2.c
 --- a/PC/launcher2.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/PC/launcher2.c	2023-05-25 03:29:24.993658200 +0200
-@@ -10,6 +10,7 @@
++++ b/PC/launcher2.c	2023-05-25 04:04:37.332477000 +0200
+@@ -9,7 +9,11 @@
+ #define __STDC_WANT_LIB_EXT1__ 1
  
  #include <windows.h>
++#if WINVER >= 0x0602 // Windows 8 or greater
  #include <pathcch.h>
++#else // Windows 7
 +#include <Shlwapi.h>
++#endif
  #include <fcntl.h>
  #include <io.h>
  #include <shlobj.h>
-@@ -188,7 +189,11 @@
+@@ -188,7 +192,11 @@
  bool
  join(wchar_t *buffer, size_t bufferLength, const wchar_t *fragment)
  {
@@ -90,7 +102,7 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
          return true;
      }
      return false;
-@@ -854,7 +859,11 @@
+@@ -854,7 +862,11 @@
          }
      }
      if (GetModuleFileNameW(NULL, iniPath, MAXLEN) &&
@@ -102,7 +114,7 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
          join(iniPath, MAXLEN, L"py.ini")) {
          debug(L"# Reading from %s for %s/%s\n", iniPath, section, settingName);
          n = GetPrivateProfileStringW(section, settingName, NULL, buffer, MAXLEN, iniPath);
-@@ -923,11 +932,17 @@
+@@ -923,11 +935,17 @@
  
      if (!GetCurrentDirectoryW(MAXLEN, buffer) ||
          wcsncpy_s(script, MAXLEN, search->scriptFile, search->scriptFileLength) ||
@@ -120,7 +132,7 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
      ) {
          return RC_NO_MEMORY;
      }
-@@ -1419,7 +1434,11 @@
+@@ -1419,7 +1437,11 @@
          return RC_NO_MEMORY;
      }
  
@@ -196,23 +208,20 @@ diff -au a/PCbuild/pywlauncher.vcxproj b/PCbuild/pywlauncher.vcxproj
    </ItemDefinitionGroup>
 diff -au a/Python/fileutils.c b/Python/fileutils.c
 --- a/Python/fileutils.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Python/fileutils.c	2023-05-25 03:53:40.056883000 +0200
-@@ -8,9 +8,14 @@
++++ b/Python/fileutils.c	2023-05-25 04:02:14.091284100 +0200
+@@ -8,7 +8,11 @@
  #ifdef MS_WINDOWS
  #  include <malloc.h>
  #  include <windows.h>
-+#  undef DEPRECATE_SUPPORTED
++# if WINVER >= 0x0602 // Windows 8 or greater
  #  include <pathcch.h>            // PathCchCombineEx
++# else // Windows 7
 +#  include <Shlwapi.h>
++# endif
  extern int winerror_to_errno(int);
  #endif
-+#if WINVER >= 0x0602 // Windows 8 or greater
-+#error "defined WINVER >= 0x0602"
-+#endif
  
- #ifdef HAVE_LANGINFO_H
- #include <langinfo.h>
-@@ -2005,7 +2010,15 @@
+@@ -2005,7 +2009,15 @@
  {
  #ifdef MS_WINDOWS
      const wchar_t *tail;
@@ -228,7 +237,7 @@ diff -au a/Python/fileutils.c b/Python/fileutils.c
      if (FAILED(hr) || path == tail) {
          return 0;
      }
-@@ -2093,8 +2106,12 @@
+@@ -2093,8 +2105,12 @@
               const wchar_t *dirname, const wchar_t *relfile)
  {
  #ifdef MS_WINDOWS
