@@ -47,38 +47,49 @@ diff -au a/Modules/getpath.c b/Modules/getpath.c
  #else
 diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
 --- a/Modules/posixmodule.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Modules/posixmodule.c	2023-05-25 08:53:28.041736900 +0200
-@@ -15,7 +15,11 @@
++++ b/Modules/posixmodule.c	2023-05-25 09:01:06.043933100 +0200
+@@ -9,13 +9,18 @@
+ 
+ #define PY_SSIZE_T_CLEAN
+ 
++#define WINVER 0x0601
+ #include "Python.h"
+ // Include <windows.h> before pycore internal headers. FSCTL_GET_REPARSE_POINT
+ // is not exported by <windows.h> if the WIN32_LEAN_AND_MEAN macro is defined,
  // whereas pycore_condvar.h defines the WIN32_LEAN_AND_MEAN macro.
  #ifdef MS_WINDOWS
  #  include <windows.h>
-+//# if WINVER >= 0x0602 // Windows 8 or greater
++# if WINVER >= 0x0602 // Windows 8 or greater
  #  include <pathcch.h>
-+//# else // Windows 7
-+//#  include <Shlwapi.h>
-+//# endif
++# else // Windows 7
++#  include <Shlwapi.h>
++# endif
  #  include <lmcons.h>             // UNLEN
  #  include "osdefs.h"             // SEP
  #  define HAVE_SYMLINK
-@@ -4499,7 +4503,18 @@
+@@ -4498,9 +4503,22 @@
+         *p = L'\\';
      }
  
++#if WINVER >= 0x0602 // Windows 8 or greater
      Py_BEGIN_ALLOW_THREADS
-+//#if WINVER >= 0x0602 // Windows 8 or greater
      ret = PathCchSkipRoot(buffer, &end);
+     Py_END_ALLOW_THREADS
 +wprintf(L"pippo1: %s\n", buffer);
 +wprintf(L"pippo2: %s\n", end);
-+exit(1);
-+//#else // Windows 7
-+//    ret = S_OK;
-+//    end = PathSkipRootW(buffer);
-+//    if (!end) {
-+//        ret = E_FAIL;
-+//    }
-+//#endif
-     Py_END_ALLOW_THREADS
++int result = wcscmp(buffer, L"C:\\a:b");
++if( result == 0 )
++	exit(1);
++#else // Windows 7
++    ret = S_OK;
++    end = PathSkipRootW(buffer);
++    if (!end) {
++        ret = E_FAIL;
++    }
++#endif
      if (FAILED(ret)) {
          result = Py_BuildValue("sO", "", path->object);
+     } else if (end != buffer) {
 diff -au a/PC/launcher2.c b/PC/launcher2.c
 --- a/PC/launcher2.c	2023-04-05 00:22:17.000000000 +0200
 +++ b/PC/launcher2.c	2023-05-25 05:12:41.373070800 +0200
