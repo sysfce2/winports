@@ -47,7 +47,7 @@ diff -au a/Modules/getpath.c b/Modules/getpath.c
  #else
 diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
 --- a/Modules/posixmodule.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Modules/posixmodule.c	2023-05-25 09:51:23.229506300 +0200
++++ b/Modules/posixmodule.c	2023-05-25 10:00:09.592612500 +0200
 @@ -9,13 +9,18 @@
  
  #define PY_SSIZE_T_CLEAN
@@ -67,7 +67,7 @@ diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
  #  include <lmcons.h>             // UNLEN
  #  include "osdefs.h"             // SEP
  #  define HAVE_SYMLINK
-@@ -4498,9 +4503,26 @@
+@@ -4498,9 +4503,27 @@
          *p = L'\\';
      }
  
@@ -83,9 +83,10 @@ diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
 +#else // Windows 7
 +    ret = S_OK;
 +    end = PathSkipRootW(buffer);
-+if buffer[0] == 'C' && buffer[1] == ':' {
-+	wprintf(L"pippo1: %s\n", buffer);
-+	wprintf(L"pippo2: %s\n", end);
++if (buffer[0] == 'C' && buffer[1] == ':')
++{
++  wprintf(L"pippo1: %s\n", buffer);
++  wprintf(L"pippo2: %s\n", end);
 +}
 +    if (!end) {
 +        ret = E_FAIL;
