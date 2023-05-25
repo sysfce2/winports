@@ -77,10 +77,12 @@ diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
          result = Py_BuildValue("sO", "", path->object);
 diff -au a/PC/launcher2.c b/PC/launcher2.c
 --- a/PC/launcher2.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/PC/launcher2.c	2023-05-25 04:04:37.332477000 +0200
-@@ -9,7 +9,11 @@
++++ b/PC/launcher2.c	2023-05-25 04:24:29.772680700 +0200
+@@ -8,8 +8,13 @@
+ 
  #define __STDC_WANT_LIB_EXT1__ 1
  
++#include "pyconfig.h"
  #include <windows.h>
 +#if WINVER >= 0x0602 // Windows 8 or greater
  #include <pathcch.h>
@@ -90,7 +92,7 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
  #include <fcntl.h>
  #include <io.h>
  #include <shlobj.h>
-@@ -188,7 +192,11 @@
+@@ -188,7 +193,11 @@
  bool
  join(wchar_t *buffer, size_t bufferLength, const wchar_t *fragment)
  {
@@ -102,7 +104,7 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
          return true;
      }
      return false;
-@@ -854,7 +862,11 @@
+@@ -854,7 +863,11 @@
          }
      }
      if (GetModuleFileNameW(NULL, iniPath, MAXLEN) &&
@@ -114,7 +116,7 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
          join(iniPath, MAXLEN, L"py.ini")) {
          debug(L"# Reading from %s for %s/%s\n", iniPath, section, settingName);
          n = GetPrivateProfileStringW(section, settingName, NULL, buffer, MAXLEN, iniPath);
-@@ -923,11 +935,17 @@
+@@ -923,11 +936,17 @@
  
      if (!GetCurrentDirectoryW(MAXLEN, buffer) ||
          wcsncpy_s(script, MAXLEN, search->scriptFile, search->scriptFileLength) ||
@@ -132,7 +134,7 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
      ) {
          return RC_NO_MEMORY;
      }
-@@ -1419,7 +1437,11 @@
+@@ -1419,7 +1438,11 @@
          return RC_NO_MEMORY;
      }
  
