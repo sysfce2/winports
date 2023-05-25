@@ -47,7 +47,7 @@ diff -au a/Modules/getpath.c b/Modules/getpath.c
  #else
 diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
 --- a/Modules/posixmodule.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Modules/posixmodule.c	2023-05-25 08:42:57.588677000 +0200
++++ b/Modules/posixmodule.c	2023-05-25 08:53:28.041736900 +0200
 @@ -15,7 +15,11 @@
  // whereas pycore_condvar.h defines the WIN32_LEAN_AND_MEAN macro.
  #ifdef MS_WINDOWS
@@ -60,13 +60,14 @@ diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
  #  include <lmcons.h>             // UNLEN
  #  include "osdefs.h"             // SEP
  #  define HAVE_SYMLINK
-@@ -4499,7 +4503,17 @@
+@@ -4499,7 +4503,18 @@
      }
  
      Py_BEGIN_ALLOW_THREADS
 +//#if WINVER >= 0x0602 // Windows 8 or greater
      ret = PathCchSkipRoot(buffer, &end);
-+wprintf(L"pippo: %s\n", buffer);
++wprintf(L"pippo1: %s\n", buffer);
++wprintf(L"pippo2: %s\n", end);
 +exit(1);
 +//#else // Windows 7
 +//    ret = S_OK;
