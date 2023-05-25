@@ -196,10 +196,12 @@ diff -au a/PCbuild/pywlauncher.vcxproj b/PCbuild/pywlauncher.vcxproj
    </ItemDefinitionGroup>
 diff -au a/Python/fileutils.c b/Python/fileutils.c
 --- a/Python/fileutils.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Python/fileutils.c	2023-05-25 03:47:45.485602700 +0200
-@@ -9,8 +9,12 @@
++++ b/Python/fileutils.c	2023-05-25 03:53:40.056883000 +0200
+@@ -8,9 +8,14 @@
+ #ifdef MS_WINDOWS
  #  include <malloc.h>
  #  include <windows.h>
++#  undef DEPRECATE_SUPPORTED
  #  include <pathcch.h>            // PathCchCombineEx
 +#  include <Shlwapi.h>
  extern int winerror_to_errno(int);
@@ -210,7 +212,7 @@ diff -au a/Python/fileutils.c b/Python/fileutils.c
  
  #ifdef HAVE_LANGINFO_H
  #include <langinfo.h>
-@@ -2005,7 +2009,15 @@
+@@ -2005,7 +2010,15 @@
  {
  #ifdef MS_WINDOWS
      const wchar_t *tail;
@@ -226,7 +228,7 @@ diff -au a/Python/fileutils.c b/Python/fileutils.c
      if (FAILED(hr) || path == tail) {
          return 0;
      }
-@@ -2093,8 +2105,12 @@
+@@ -2093,8 +2106,12 @@
               const wchar_t *dirname, const wchar_t *relfile)
  {
  #ifdef MS_WINDOWS
