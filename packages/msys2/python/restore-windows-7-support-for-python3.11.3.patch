@@ -15,7 +15,7 @@ diff -au a/Modules/_winapi.c b/Modules/_winapi.c
  
 diff -au a/Modules/getpath.c b/Modules/getpath.c
 --- a/Modules/getpath.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Modules/getpath.c	2023-05-25 03:12:59.316280600 +0200
++++ b/Modules/getpath.c	2023-05-25 03:23:11.027268500 +0200
 @@ -12,6 +12,7 @@
  #ifdef MS_WINDOWS
  #  include <windows.h>            // GetFullPathNameW(), MAX_PATH
@@ -24,27 +24,23 @@ diff -au a/Modules/getpath.c b/Modules/getpath.c
  #endif
  
  #ifdef __APPLE__
-@@ -233,11 +234,20 @@
+@@ -233,9 +234,16 @@
  #ifdef MS_WINDOWS
          const wchar_t *ext;
          DWORD attr = GetFileAttributesW(path);
-+  #if WINVER >= 0x0602 // Windows 8 or greater
++  #if WINVER < 0x0602 // Windows 7
++        ext = PathFindExtensionW(path);
++  #endif
          r = (attr != INVALID_FILE_ATTRIBUTES) &&
              !(attr & FILE_ATTRIBUTE_DIRECTORY) &&
++  #if WINVER >= 0x0602 // Windows 8 or greater
              SUCCEEDED(PathCchFindExtension(path, cchPath + 1, &ext)) &&
++  #else // Windows 7
++            (ext != NULL) &&
++  #endif
              (CompareStringOrdinal(ext, -1, L".exe", -1, 1 /* ignore case */) == CSTR_EQUAL)
              ? Py_True : Py_False;
-+  #else // Windows 7
-+        ext = PathFindExtensionW(path);
-+        r = (attr != INVALID_FILE_ATTRIBUTES) &&
-+            !(attr & FILE_ATTRIBUTE_DIRECTORY) &&
-+            (ext != NULL) &&
-+            (CompareStringOrdinal(ext, -1, L".exe", -1, 1 /* ignore case */) == CSTR_EQUAL)
-+            ? Py_True : Py_False;
-+  #endif
  #else
-         struct stat st;
-         r = (_Py_wstat(path, &st) == 0) &&
 diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
 --- a/Modules/posixmodule.c	2023-04-05 00:22:17.000000000 +0200
 +++ b/Modules/posixmodule.c	2023-05-25 03:07:07.984185600 +0200
@@ -73,7 +69,7 @@ diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
          result = Py_BuildValue("sO", "", path->object);
 diff -au a/PC/launcher2.c b/PC/launcher2.c
 --- a/PC/launcher2.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/PC/launcher2.c	2023-05-25 03:05:51.267797700 +0200
++++ b/PC/launcher2.c	2023-05-25 03:29:24.993658200 +0200
 @@ -10,6 +10,7 @@
  
  #include <windows.h>
@@ -82,94 +78,60 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
  #include <fcntl.h>
  #include <io.h>
  #include <shlobj.h>
-@@ -188,9 +189,15 @@
+@@ -188,7 +189,11 @@
  bool
  join(wchar_t *buffer, size_t bufferLength, const wchar_t *fragment)
  {
 +#if WINVER >= 0x0602 // Windows 8 or greater
      if (SUCCEEDED(PathCchCombineEx(buffer, bufferLength, buffer, fragment, PATHCCH_ALLOW_LONG_PATHS))) {
-         return true;
-     }
 +#else // Windows 7
 +    if (PathCombineW(buffer, buffer, fragment)) {
-+        return true;
-+    }
 +#endif
+         return true;
+     }
      return false;
- }
- 
-@@ -853,6 +860,7 @@
-             winerror(0, L"Failed to read from %s\n", iniPath);
+@@ -854,7 +859,11 @@
          }
      }
-+#if WINVER >= 0x0602 // Windows 8 or greater
      if (GetModuleFileNameW(NULL, iniPath, MAXLEN) &&
-         SUCCEEDED(PathCchRemoveFileSpec(iniPath, MAXLEN)) &&
-         join(iniPath, MAXLEN, L"py.ini")) {
-@@ -867,6 +875,22 @@
-             winerror(0, L"Failed to read from %s\n", iniPath);
-         }
-     }
-+#else // Windows 7
-+    if (GetModuleFileNameW(NULL, iniPath, MAXLEN) &&
-+        PathRemoveFileSpecW(iniPath) &&
-+        join(iniPath, MAXLEN, L"py.ini")) {
-+        debug(L"# Reading from %s for %s/%s\n", iniPath, section, settingName);
-+        n = GetPrivateProfileStringW(section, settingName, NULL, buffer, MAXLEN, iniPath);
-+        if (n) {
-+            debug(L"# Found %s in %s\n", settingName, iniPath);
-+            return n;
-+        } else if (GetLastError() == ERROR_FILE_NOT_FOUND) {
-+            debug(L"# Did not find file %s\n", iniPath);
-+        } else {
-+            winerror(0, L"Failed to read from %s\n", iniPath);
-+        }
-+    }
-+#endif
-     return 0;
- }
- 
-@@ -921,6 +945,7 @@
-     }
-     *pC = L'\0';
- 
 +#if WINVER >= 0x0602 // Windows 8 or greater
+         SUCCEEDED(PathCchRemoveFileSpec(iniPath, MAXLEN)) &&
++#else // Windows 7
++        PathRemoveFileSpecW(iniPath) &&
++#endif
+         join(iniPath, MAXLEN, L"py.ini")) {
+         debug(L"# Reading from %s for %s/%s\n", iniPath, section, settingName);
+         n = GetPrivateProfileStringW(section, settingName, NULL, buffer, MAXLEN, iniPath);
+@@ -923,11 +932,17 @@
+ 
      if (!GetCurrentDirectoryW(MAXLEN, buffer) ||
          wcsncpy_s(script, MAXLEN, search->scriptFile, search->scriptFileLength) ||
++#if WINVER >= 0x0602 // Windows 8 or greater
          FAILED(PathCchCombineEx(buffer, MAXLEN, buffer, script,
-@@ -931,6 +956,16 @@
-     ) {
-         return RC_NO_MEMORY;
-     }
+                                 PATHCCH_ALLOW_LONG_PATHS)) ||
+         FAILED(PathCchRemoveFileSpec(buffer, MAXLEN)) ||
+         FAILED(PathCchCombineEx(buffer, MAXLEN, buffer, command,
+                                 PATHCCH_ALLOW_LONG_PATHS))
 +#else // Windows 7
-+    if (!GetCurrentDirectoryW(MAXLEN, buffer) ||
-+        wcsncpy_s(script, MAXLEN, search->scriptFile, search->scriptFileLength) ||
 +        !PathCombineW(buffer, buffer, script) ||
 +        !PathRemoveFileSpecW(buffer) ||
 +        !PathCombineW(buffer, buffer, command)
-+    ) {
-+        return RC_NO_MEMORY;
-+    }
 +#endif
- 
-     int n = (int)wcsnlen(buffer, MAXLEN);
-     wchar_t *path = allocSearchInfoBuffer(search, n + 1);
-@@ -1419,9 +1454,15 @@
+     ) {
+         return RC_NO_MEMORY;
+     }
+@@ -1419,7 +1434,11 @@
          return RC_NO_MEMORY;
      }
  
 +#if WINVER >= 0x0602 // Windows 8 or greater
      if (FAILED(PathCchCombineEx(buffer, MAXLEN, installDir, fragmentBuffer, PATHCCH_ALLOW_LONG_PATHS))) {
-         return RC_NO_MEMORY;
-     }
 +#else // Windows 7
 +    if (!PathCombineW(buffer, installDir, fragmentBuffer)) {
-+        return RC_NO_MEMORY;
-+    }
 +#endif
+         return RC_NO_MEMORY;
+     }
  
-     return copyWstr(dest, buffer);
- }
 diff -au a/PC/pyconfig.h b/PC/pyconfig.h
 --- a/PC/pyconfig.h	2023-04-05 00:22:17.000000000 +0200
 +++ b/PC/pyconfig.h	2023-05-24 06:47:53.178970100 +0200
@@ -234,7 +196,7 @@ diff -au a/PCbuild/pywlauncher.vcxproj b/PCbuild/pywlauncher.vcxproj
    </ItemDefinitionGroup>
 diff -au a/Python/fileutils.c b/Python/fileutils.c
 --- a/Python/fileutils.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Python/fileutils.c	2023-05-25 03:07:32.504588100 +0200
++++ b/Python/fileutils.c	2023-05-25 03:30:33.743590400 +0200
 @@ -9,6 +9,7 @@
  #  include <malloc.h>
  #  include <windows.h>
@@ -259,20 +221,16 @@ diff -au a/Python/fileutils.c b/Python/fileutils.c
      if (FAILED(hr) || path == tail) {
          return 0;
      }
-@@ -2093,10 +2102,16 @@
+@@ -2093,8 +2102,12 @@
               const wchar_t *dirname, const wchar_t *relfile)
  {
  #ifdef MS_WINDOWS
 +  #if WINVER >= 0x0602 // Windows 8 or greater
      if (FAILED(PathCchCombineEx(buffer, bufsize, dirname, relfile,
          PATHCCH_ALLOW_LONG_PATHS))) {
-         return -1;
-     }
 +  #else // Windows 7
 +    if (!PathCombineW(buffer, dirname, relfile)) {
-+        return -1;
-+    }
 +  #endif
+         return -1;
+     }
  #else
-     assert(!_Py_isabs(relfile));
-     size_t dirlen = wcslen(dirname);
