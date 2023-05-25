@@ -15,7 +15,7 @@ diff -au a/Modules/_winapi.c b/Modules/_winapi.c
  
 diff -au a/Modules/getpath.c b/Modules/getpath.c
 --- a/Modules/getpath.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Modules/getpath.c	2023-05-25 03:06:59.970727300 +0200
++++ b/Modules/getpath.c	2023-05-25 03:12:59.316280600 +0200
 @@ -12,6 +12,7 @@
  #ifdef MS_WINDOWS
  #  include <windows.h>            // GetFullPathNameW(), MAX_PATH
@@ -24,7 +24,7 @@ diff -au a/Modules/getpath.c b/Modules/getpath.c
  #endif
  
  #ifdef __APPLE__
-@@ -233,11 +234,21 @@
+@@ -233,11 +234,20 @@
  #ifdef MS_WINDOWS
          const wchar_t *ext;
          DWORD attr = GetFileAttributesW(path);
@@ -41,7 +41,6 @@ diff -au a/Modules/getpath.c b/Modules/getpath.c
 +            (ext != NULL) &&
 +            (CompareStringOrdinal(ext, -1, L".exe", -1, 1 /* ignore case */) == CSTR_EQUAL)
 +            ? Py_True : Py_False;
-+      }
 +  #endif
  #else
          struct stat st;
