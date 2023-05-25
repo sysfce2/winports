@@ -111,7 +111,7 @@ jobs:
           rm py*.dll vcruntime*.dll
         op_ok
 
-        msg_info "Copying txt file"
+        msg_info "Copying LICENSE file"
           cp -a LICENSE.txt "${ARTIFACT_DIR}"
         op_ok
 
