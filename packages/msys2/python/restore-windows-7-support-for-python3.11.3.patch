@@ -47,7 +47,7 @@ diff -au a/Modules/getpath.c b/Modules/getpath.c
  #else
 diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
 --- a/Modules/posixmodule.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Modules/posixmodule.c	2023-05-25 07:31:28.813373100 +0200
++++ b/Modules/posixmodule.c	2023-05-25 07:37:04.553576400 +0200
 @@ -15,7 +15,11 @@
  // whereas pycore_condvar.h defines the WIN32_LEAN_AND_MEAN macro.
  #ifdef MS_WINDOWS
@@ -67,7 +67,7 @@ diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
 +#if WINVER >= 0x0602 // Windows 8 or greater
      ret = PathCchSkipRoot(buffer, &end);
 +#else // Windows 7
-+	ret = S_OK
++	ret = S_OK;
 +    end = PathSkipRootW(buffer);
 +    if (!end) {
 +        ret = E_FAIL;
