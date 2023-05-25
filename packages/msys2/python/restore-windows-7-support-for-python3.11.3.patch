@@ -77,21 +77,20 @@ diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
          result = Py_BuildValue("sO", "", path->object);
 diff -au a/PC/launcher2.c b/PC/launcher2.c
 --- a/PC/launcher2.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/PC/launcher2.c	2023-05-25 05:00:02.884687700 +0200
-@@ -8,8 +8,13 @@
++++ b/PC/launcher2.c	2023-05-25 05:12:41.373070800 +0200
+@@ -8,7 +8,12 @@
  
  #define __STDC_WANT_LIB_EXT1__ 1
  
 +#include "pyconfig.h"
  #include <windows.h>
-+#if Py_WINVER >= 0x0602 // Windows 8 or greater
- #include <pathcch.h>
-+#else // Windows 7
++#if Py_WINVER < 0x0602 // Windows 7 or earlier
 +#include <Shlwapi.h>
++#define PATHCCH_NO_DEPRECATE
 +#endif
+ #include <pathcch.h>
  #include <fcntl.h>
  #include <io.h>
- #include <shlobj.h>
 @@ -188,7 +193,11 @@
  bool
  join(wchar_t *buffer, size_t bufferLength, const wchar_t *fragment)
