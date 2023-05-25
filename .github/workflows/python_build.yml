@@ -67,7 +67,7 @@ jobs:
       timeout-minutes: 30
 
     - name: Display build info
-      if: ${{ true }}
+      if: ${{ false }}
       shell: cmd
       working-directory: ${{ env.PYTHON_SRC_DIR }}
       run: .\python.bat -m test.pythoninfo
@@ -79,7 +79,7 @@ jobs:
       run: .\PCbuild\rt.bat -p Win32 -q -uall -u-cpu -rwW --slowest --timeout=1200 -j0
 
     - name: Make artifact
-      if: ${{ true }}
+      if: ${{ false }}
       shell: bash
       run: |
         source "$LIB_MCP"; if (( $? )); then echo -n "\nFATAL ERROR: Unable to load library \"${LIB_MCP}\"!"; exit 1; fi
@@ -139,7 +139,7 @@ jobs:
         op_ok
 
     - name: ${{ format('Upload artifact {0}', env.ARTIFACT_NAME) }}
-      if: ${{ true }}
+      if: ${{ false }}
       uses: actions/upload-artifact@v3
       with:
         name: ${{ env.ARTIFACT_NAME }}

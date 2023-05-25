@@ -15,15 +15,8 @@ diff -au a/Modules/_winapi.c b/Modules/_winapi.c
  
 diff -au a/Modules/getpath.c b/Modules/getpath.c
 --- a/Modules/getpath.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Modules/getpath.c	2023-05-25 05:56:25.858182800 +0200
-@@ -1,5 +1,6 @@
- /* Return the initial module search path. */
- 
-+#define WINVER 0x0602
- #include "Python.h"
- #include "marshal.h"              // PyMarshal_ReadObjectFromString
- #include "osdefs.h"               // DELIM
-@@ -11,7 +12,11 @@
++++ b/Modules/getpath.c	2023-05-25 06:21:26.097991600 +0200
+@@ -11,7 +11,11 @@
  
  #ifdef MS_WINDOWS
  #  include <windows.h>            // GetFullPathNameW(), MAX_PATH
@@ -35,7 +28,7 @@ diff -au a/Modules/getpath.c b/Modules/getpath.c
  #endif
  
  #ifdef __APPLE__
-@@ -233,9 +238,16 @@
+@@ -233,9 +237,16 @@
  #ifdef MS_WINDOWS
          const wchar_t *ext;
          DWORD attr = GetFileAttributesW(path);
