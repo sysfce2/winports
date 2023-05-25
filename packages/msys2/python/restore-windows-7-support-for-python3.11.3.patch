@@ -1,12 +1,12 @@
 diff -au a/Modules/_winapi.c b/Modules/_winapi.c
 --- a/Modules/_winapi.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Modules/_winapi.c	2023-05-25 01:31:41.228633900 +0200
++++ b/Modules/_winapi.c	2023-05-25 02:37:15.647669800 +0200
 @@ -41,6 +41,11 @@
  
  #define WINDOWS_LEAN_AND_MEAN
  #include "windows.h"
 +/* winnls.h */
-+#if WINVER < 0x0602
++#if WINVER < 0x0602 // Windows 7 or erarlier
 +#define LCMAP_SORTHANDLE 0x20000000
 +#define LCMAP_HASH 0x00040000
 +#endif
@@ -15,59 +15,26 @@ diff -au a/Modules/_winapi.c b/Modules/_winapi.c
  
 diff -au a/Modules/getpath.c b/Modules/getpath.c
 --- a/Modules/getpath.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Modules/getpath.c	2023-05-25 01:05:33.309954100 +0200
-@@ -11,7 +11,7 @@
- 
++++ b/Modules/getpath.c	2023-05-25 03:06:59.970727300 +0200
+@@ -12,6 +12,7 @@
  #ifdef MS_WINDOWS
  #  include <windows.h>            // GetFullPathNameW(), MAX_PATH
--#  include <pathcch.h>
+ #  include <pathcch.h>
 +#  include <Shlwapi.h>
  #endif
  
  #ifdef __APPLE__
-@@ -218,6 +218,12 @@
- }
- 
- 
-+#ifdef MS_WINDOWS
-+static int _PathCchFindExtension_Initialized = 0;
-+typedef HRESULT (__stdcall *PPathCchFindExtension) (PCWSTR pszPath, size_t cchPath, PCWSTR *ppszExt);
-+static PPathCchFindExtension PathCchFindExtension;
-+#endif
-+
- static PyObject *
- getpath_isxfile(PyObject *Py_UNUSED(self), PyObject *args)
- {
-@@ -228,16 +234,39 @@
-     if (!PyArg_ParseTuple(args, "U", &pathobj)) {
-         return NULL;
-     }
-+
-+#ifdef MS_WINDOWS
-+    if (_PathCchFindExtension_Initialized == 0) {
-+        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-+        if (pathapi) {
-+            PathCchFindExtension = (PPathCchFindExtension)GetProcAddress(pathapi, "PathCchFindExtension");
-+        } else {
-+            PathCchFindExtension = NULL;
-+        }
-+
-+        _PathCchFindExtension_Initialized = 1;
-+    }
-+#endif
-+
-     path = PyUnicode_AsWideCharString(pathobj, &cchPath);
-     if (path) {
+@@ -233,11 +234,21 @@
  #ifdef MS_WINDOWS
          const wchar_t *ext;
          DWORD attr = GetFileAttributesW(path);
-+      if (PathCchFindExtension) {
++  #if WINVER >= 0x0602 // Windows 8 or greater
          r = (attr != INVALID_FILE_ATTRIBUTES) &&
              !(attr & FILE_ATTRIBUTE_DIRECTORY) &&
              SUCCEEDED(PathCchFindExtension(path, cchPath + 1, &ext)) &&
              (CompareStringOrdinal(ext, -1, L".exe", -1, 1 /* ignore case */) == CSTR_EQUAL)
              ? Py_True : Py_False;
-+      } else {
++  #else // Windows 7
 +        ext = PathFindExtensionW(path);
 +        r = (attr != INVALID_FILE_ATTRIBUTES) &&
 +            !(attr & FILE_ATTRIBUTE_DIRECTORY) &&
@@ -75,138 +42,76 @@ diff -au a/Modules/getpath.c b/Modules/getpath.c
 +            (CompareStringOrdinal(ext, -1, L".exe", -1, 1 /* ignore case */) == CSTR_EQUAL)
 +            ? Py_True : Py_False;
 +      }
++  #endif
  #else
          struct stat st;
          r = (_Py_wstat(path, &st) == 0) &&
 diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
 --- a/Modules/posixmodule.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Modules/posixmodule.c	2023-05-24 18:44:29.045193000 +0200
-@@ -15,7 +15,7 @@
- // whereas pycore_condvar.h defines the WIN32_LEAN_AND_MEAN macro.
++++ b/Modules/posixmodule.c	2023-05-25 03:07:07.984185600 +0200
+@@ -16,6 +16,7 @@
  #ifdef MS_WINDOWS
  #  include <windows.h>
--#  include <pathcch.h>
+ #  include <pathcch.h>
 +#  include <Shlwapi.h>
  #  include <lmcons.h>             // UNLEN
  #  include "osdefs.h"             // SEP
  #  define HAVE_SYMLINK
-@@ -4480,6 +4480,10 @@
- Removes everything after the root on Win32.
- [clinic start generated code]*/
- 
-+static int _PathCchSkipRoot_Initialized = 0;
-+typedef HRESULT (__stdcall *PPathCchSkipRoot) (PCWSTR pszPath, PCWSTR *ppszRootEnd);
-+static PPathCchSkipRoot PathCchSkipRoot;
-+
- static PyObject *
- os__path_splitroot_impl(PyObject *module, path_t *path)
- /*[clinic end generated code: output=ab7f1a88b654581c input=dc93b1d3984cffb6]*/
-@@ -4498,8 +4502,25 @@
-         *p = L'\\';
+@@ -4499,7 +4500,14 @@
      }
  
-+    if (_PathCchSkipRoot_Initialized == 0) {
-+        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-+        if (pathapi) {
-+            PathCchSkipRoot = (PPathCchSkipRoot)GetProcAddress(pathapi, "PathCchSkipRoot");
-+        } else {
-+            PathCchSkipRoot = NULL;
-+        }
-+
-+        _PathCchSkipRoot_Initialized = 1;
-+    }
      Py_BEGIN_ALLOW_THREADS
-+  if (PathCchSkipRoot) {
++#if WINVER >= 0x0602 // Windows 8 or greater
      ret = PathCchSkipRoot(buffer, &end);
-+  } else {
++#else // Windows 7
 +    end = PathSkipRootW(buffer);
 +    if (!end) {
 +        ret = E_FAIL;
 +    }
-+  }
++#endif
      Py_END_ALLOW_THREADS
      if (FAILED(ret)) {
          result = Py_BuildValue("sO", "", path->object);
 diff -au a/PC/launcher2.c b/PC/launcher2.c
 --- a/PC/launcher2.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/PC/launcher2.c	2023-05-25 01:52:24.893767500 +0200
-@@ -9,7 +9,10 @@
- #define __STDC_WANT_LIB_EXT1__ 1
++++ b/PC/launcher2.c	2023-05-25 03:05:51.267797700 +0200
+@@ -10,6 +10,7 @@
  
  #include <windows.h>
--#include <pathcch.h>
+ #include <pathcch.h>
 +#include <Shlwapi.h>
-+/* pathcch.h */
-+#define PATHCCH_ALLOW_LONG_PATHS 0x00000001
-+#define PATHCCH_MAX_CCH          0x8000
  #include <fcntl.h>
  #include <io.h>
  #include <shlobj.h>
-@@ -42,6 +45,14 @@
- 
- static FILE * log_fp = NULL;
- 
-+static int _PathCchCombineEx_Initialized = 0;
-+typedef HRESULT(__stdcall *PPathCchCombineEx) (PWSTR pszPathOut, size_t cchPathOut, PCWSTR pszPathIn, PCWSTR pszMore, unsigned long dwFlags);
-+static PPathCchCombineEx PathCchCombineEx;
-+
-+static int _PathCchRemoveFileSpec_Initialized = 0;
-+typedef HRESULT(__stdcall *PPathCchRemoveFileSpec) (PWSTR  pszPath, size_t cchPath);
-+static PPathCchRemoveFileSpec PathCchRemoveFileSpec;
-+
- void
- debug(wchar_t * format, ...)
- {
-@@ -188,9 +199,25 @@
+@@ -188,9 +189,15 @@
  bool
  join(wchar_t *buffer, size_t bufferLength, const wchar_t *fragment)
  {
-+    if (_PathCchCombineEx_Initialized == 0) {
-+        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-+        if (pathapi) {
-+            PathCchCombineEx = (PPathCchCombineEx)GetProcAddress(pathapi, "PathCchCombineEx");
-+        }
-+        else {
-+            PathCchCombineEx = NULL;
-+        }
-+        _PathCchCombineEx_Initialized = 1;
-+    }
-+  if (PathCchCombineEx) {
++#if WINVER >= 0x0602 // Windows 8 or greater
      if (SUCCEEDED(PathCchCombineEx(buffer, bufferLength, buffer, fragment, PATHCCH_ALLOW_LONG_PATHS))) {
          return true;
      }
-+  } else {
++#else // Windows 7
 +    if (PathCombineW(buffer, buffer, fragment)) {
 +        return true;
 +    }
-+  }
++#endif
      return false;
  }
  
-@@ -853,6 +880,18 @@
+@@ -853,6 +860,7 @@
              winerror(0, L"Failed to read from %s\n", iniPath);
          }
      }
-+
-+    if (_PathCchRemoveFileSpec_Initialized == 0) {
-+        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-+        if (pathapi) {
-+            PathCchRemoveFileSpec = (PPathCchRemoveFileSpec)GetProcAddress(pathapi, "PathCchRemoveFileSpec");
-+        }
-+        else {
-+            PathCchRemoveFileSpec = NULL;
-+        }
-+        _PathCchRemoveFileSpec_Initialized = 1;
-+    }
-+  if (PathCchRemoveFileSpec) {
++#if WINVER >= 0x0602 // Windows 8 or greater
      if (GetModuleFileNameW(NULL, iniPath, MAXLEN) &&
          SUCCEEDED(PathCchRemoveFileSpec(iniPath, MAXLEN)) &&
          join(iniPath, MAXLEN, L"py.ini")) {
-@@ -867,6 +906,22 @@
+@@ -867,6 +875,22 @@
              winerror(0, L"Failed to read from %s\n", iniPath);
          }
      }
-+  } else {
++#else // Windows 7
 +    if (GetModuleFileNameW(NULL, iniPath, MAXLEN) &&
 +        PathRemoveFileSpecW(iniPath) &&
 +        join(iniPath, MAXLEN, L"py.ini")) {
@@ -221,37 +126,23 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
 +            winerror(0, L"Failed to read from %s\n", iniPath);
 +        }
 +    }
-+  }
++#endif
      return 0;
  }
  
-@@ -921,6 +976,20 @@
+@@ -921,6 +945,7 @@
      }
      *pC = L'\0';
  
-+    if (_PathCchCombineEx_Initialized == 0 || _PathCchRemoveFileSpec_Initialized == 0) {
-+        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-+        if (pathapi) {
-+            PathCchCombineEx = (PPathCchCombineEx)GetProcAddress(pathapi, "PathCchCombineEx");
-+            PathCchRemoveFileSpec = (PPathCchRemoveFileSpec)GetProcAddress(pathapi, "PathCchRemoveFileSpec");
-+        }
-+        else {
-+            PathCchCombineEx = NULL;
-+            PathCchRemoveFileSpec = NULL;
-+        }
-+        _PathCchCombineEx_Initialized = 1;
-+        _PathCchRemoveFileSpec_Initialized = 1;
-+    }
-+  if (PathCchCombineEx && PathCchRemoveFileSpec) {
++#if WINVER >= 0x0602 // Windows 8 or greater
      if (!GetCurrentDirectoryW(MAXLEN, buffer) ||
          wcsncpy_s(script, MAXLEN, search->scriptFile, search->scriptFileLength) ||
          FAILED(PathCchCombineEx(buffer, MAXLEN, buffer, script,
-@@ -931,7 +1000,16 @@
+@@ -931,6 +956,16 @@
      ) {
          return RC_NO_MEMORY;
      }
--
-+  } else {
++#else // Windows 7
 +    if (!GetCurrentDirectoryW(MAXLEN, buffer) ||
 +        wcsncpy_s(script, MAXLEN, search->scriptFile, search->scriptFileLength) ||
 +        !PathCombineW(buffer, buffer, script) ||
@@ -260,33 +151,23 @@ diff -au a/PC/launcher2.c b/PC/launcher2.c
 +    ) {
 +        return RC_NO_MEMORY;
 +    }
-+  }
++#endif
+ 
      int n = (int)wcsnlen(buffer, MAXLEN);
      wchar_t *path = allocSearchInfoBuffer(search, n + 1);
-     if (!path) {
-@@ -1419,9 +1497,25 @@
+@@ -1419,9 +1454,15 @@
          return RC_NO_MEMORY;
      }
  
-+    if (_PathCchCombineEx_Initialized == 0) {
-+        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-+        if (pathapi) {
-+            PathCchCombineEx = (PPathCchCombineEx)GetProcAddress(pathapi, "PathCchCombineEx");
-+        }
-+        else {
-+            PathCchCombineEx = NULL;
-+        }
-+        _PathCchCombineEx_Initialized = 1;
-+    }
-+  if (PathCchCombineEx) {
++#if WINVER >= 0x0602 // Windows 8 or greater
      if (FAILED(PathCchCombineEx(buffer, MAXLEN, installDir, fragmentBuffer, PATHCCH_ALLOW_LONG_PATHS))) {
          return RC_NO_MEMORY;
      }
-+  } else {
++#else // Windows 7
 +    if (!PathCombineW(buffer, installDir, fragmentBuffer)) {
 +        return RC_NO_MEMORY;
 +    }
-+  }
++#endif
  
      return copyWstr(dest, buffer);
  }
@@ -306,7 +187,7 @@ diff -au a/PC/pyconfig.h b/PC/pyconfig.h
     these values on extensions, as that will affect the prototypes and
 diff -au a/PCbuild/_freeze_module.vcxproj b/PCbuild/_freeze_module.vcxproj
 --- a/PCbuild/_freeze_module.vcxproj	2023-04-05 00:22:17.000000000 +0200
-+++ b/PCbuild/_freeze_module.vcxproj	2023-05-24 21:39:27.398664400 +0200
++++ b/PCbuild/_freeze_module.vcxproj	2023-05-25 02:48:02.944693100 +0200
 @@ -94,7 +94,7 @@
      </ClCompile>
      <Link>
@@ -318,7 +199,7 @@ diff -au a/PCbuild/_freeze_module.vcxproj b/PCbuild/_freeze_module.vcxproj
    </ItemDefinitionGroup>
 diff -au a/PCbuild/pylauncher.vcxproj b/PCbuild/pylauncher.vcxproj
 --- a/PCbuild/pylauncher.vcxproj	2023-04-05 00:22:17.000000000 +0200
-+++ b/PCbuild/pylauncher.vcxproj	2023-05-24 21:39:56.283316500 +0200
++++ b/PCbuild/pylauncher.vcxproj	2023-05-25 02:48:08.460008500 +0200
 @@ -95,7 +95,7 @@
        <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
      </ClCompile>
@@ -330,7 +211,7 @@ diff -au a/PCbuild/pylauncher.vcxproj b/PCbuild/pylauncher.vcxproj
    </ItemDefinitionGroup>
 diff -au a/PCbuild/pythoncore.vcxproj b/PCbuild/pythoncore.vcxproj
 --- a/PCbuild/pythoncore.vcxproj	2023-04-05 00:22:17.000000000 +0200
-+++ b/PCbuild/pythoncore.vcxproj	2023-05-24 21:40:20.173683000 +0200
++++ b/PCbuild/pythoncore.vcxproj	2023-05-25 02:48:15.341402100 +0200
 @@ -106,7 +106,7 @@
        <PreprocessorDefinitions Condition="$(IncludeExternals)">_Py_HAVE_ZLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
      </ClCompile>
@@ -354,102 +235,45 @@ diff -au a/PCbuild/pywlauncher.vcxproj b/PCbuild/pywlauncher.vcxproj
    </ItemDefinitionGroup>
 diff -au a/Python/fileutils.c b/Python/fileutils.c
 --- a/Python/fileutils.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Python/fileutils.c	2023-05-24 22:36:15.967623400 +0200
-@@ -8,7 +8,8 @@
- #ifdef MS_WINDOWS
++++ b/Python/fileutils.c	2023-05-25 03:07:32.504588100 +0200
+@@ -9,6 +9,7 @@
  #  include <malloc.h>
  #  include <windows.h>
--#  include <pathcch.h>            // PathCchCombineEx
+ #  include <pathcch.h>            // PathCchCombineEx
 +#  include <Shlwapi.h>
-+#define PATHCCH_ALLOW_LONG_PATHS 0x00000001
  extern int winerror_to_errno(int);
  #endif
  
-@@ -2000,12 +2001,36 @@
- #endif
- 
- 
-+#ifdef MS_WINDOWS
-+static int _PathCchSkipRoot_Initialized = 0;
-+typedef HRESULT (__stdcall *PPathCchSkipRoot) (PCWSTR pszPath, PCWSTR *ppszRootEnd);
-+static PPathCchSkipRoot PathCchSkipRoot;
-+#endif
-+
- int
- _Py_isabs(const wchar_t *path)
+@@ -2005,7 +2006,15 @@
  {
  #ifdef MS_WINDOWS
      const wchar_t *tail;
--    HRESULT hr = PathCchSkipRoot(path, &tail);
-+    if (_PathCchSkipRoot_Initialized == 0) {
-+        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-+        if (pathapi) {
-+            PathCchSkipRoot = (PPathCchSkipRoot)GetProcAddress(pathapi, "PathCchSkipRoot");
-+        } else {
-+            PathCchSkipRoot = NULL;
-+        }
-+
-+        _PathCchSkipRoot_Initialized = 1;
-+    }
-+	HRESULT hr = 0;
-+  if (PathCchSkipRoot) {
-+    hr = PathCchSkipRoot(path, &tail);
-+  } else {
++  #if WINVER >= 0x0602 // Windows 8 or greater
+     HRESULT hr = PathCchSkipRoot(path, &tail);
++  #else // Windows 7
++	HRESULT hr = NULL;
 +    tail = PathSkipRootW(path);
 +    if (!tail) {
 +        hr = E_FAIL;
 +    }
-+  }
++  #endif
      if (FAILED(hr) || path == tail) {
          return 0;
      }
-@@ -2086,6 +2111,11 @@
- #endif
- }
- 
-+#ifdef MS_WINDOWS
-+static int _PathCchCombineEx_Initialized = 0;
-+typedef HRESULT(__stdcall *PPathCchCombineEx) (PWSTR pszPathOut, size_t cchPathOut, PCWSTR pszPathIn, PCWSTR pszMore, unsigned long dwFlags);
-+static PPathCchCombineEx PathCchCombineEx;
-+#endif
- 
- // The caller must ensure "buffer" is big enough.
- static int
-@@ -2093,10 +2123,26 @@
+@@ -2093,10 +2102,16 @@
               const wchar_t *dirname, const wchar_t *relfile)
  {
  #ifdef MS_WINDOWS
-+    if (_PathCchCombineEx_Initialized == 0) {
-+        HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-+        if (pathapi) {
-+            PathCchCombineEx = (PPathCchCombineEx)GetProcAddress(pathapi, "PathCchCombineEx");
-+        }
-+        else {
-+            PathCchCombineEx = NULL;
-+        }
-+        _PathCchCombineEx_Initialized = 1;
-+    }
-+  if (PathCchCombineEx) {
++  #if WINVER >= 0x0602 // Windows 8 or greater
      if (FAILED(PathCchCombineEx(buffer, bufsize, dirname, relfile,
          PATHCCH_ALLOW_LONG_PATHS))) {
          return -1;
      }
-+  } else {
++  #else // Windows 7
 +    if (!PathCombineW(buffer, dirname, relfile)) {
 +        return -1;
 +    }
-+  }
++  #endif
  #else
      assert(!_Py_isabs(relfile));
      size_t dirlen = wcslen(dirname);
-diff -au a/Python/pathconfig.c b/Python/pathconfig.c
---- a/Python/pathconfig.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Python/pathconfig.c	2023-05-24 22:36:53.265756800 +0200
-@@ -10,7 +10,6 @@
- #include <wchar.h>
- #ifdef MS_WINDOWS
- #  include <windows.h>            // GetFullPathNameW(), MAX_PATH
--#  include <pathcch.h>
- #  include <shlwapi.h>
- #endif
- 
