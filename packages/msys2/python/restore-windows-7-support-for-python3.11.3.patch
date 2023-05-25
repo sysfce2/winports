@@ -175,13 +175,13 @@ diff -au a/PC/pyconfig.h b/PC/pyconfig.h
     these values on extensions, as that will affect the prototypes and
 diff -au a/PCbuild/_freeze_module.vcxproj b/PCbuild/_freeze_module.vcxproj
 --- a/PCbuild/_freeze_module.vcxproj	2023-04-05 00:22:17.000000000 +0200
-+++ b/PCbuild/_freeze_module.vcxproj	2023-05-25 02:48:02.944693100 +0200
++++ b/PCbuild/_freeze_module.vcxproj	2023-05-25 06:01:37.483006700 +0200
 @@ -94,7 +94,7 @@
      </ClCompile>
      <Link>
        <SubSystem>Console</SubSystem>
 -      <AdditionalDependencies>version.lib;ws2_32.lib;pathcch.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
-+      <AdditionalDependencies>version.lib;ws2_32.lib;shlwapi.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
++      <AdditionalDependencies>version.lib;ws2_32.lib;pathcch.lib;shlwapi.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
        <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
      </Link>
    </ItemDefinitionGroup>
