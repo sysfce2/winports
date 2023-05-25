@@ -47,32 +47,34 @@ diff -au a/Modules/getpath.c b/Modules/getpath.c
  #else
 diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
 --- a/Modules/posixmodule.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Modules/posixmodule.c	2023-05-25 07:37:04.553576400 +0200
++++ b/Modules/posixmodule.c	2023-05-25 07:57:40.335259000 +0200
 @@ -15,7 +15,11 @@
  // whereas pycore_condvar.h defines the WIN32_LEAN_AND_MEAN macro.
  #ifdef MS_WINDOWS
  #  include <windows.h>
-+# if WINVER >= 0x0602 // Windows 8 or greater
++//# if WINVER >= 0x0602 // Windows 8 or greater
  #  include <pathcch.h>
-+# else // Windows 7
-+#  include <Shlwapi.h>
-+# endif
++//# else // Windows 7
++//#  include <Shlwapi.h>
++//# endif
  #  include <lmcons.h>             // UNLEN
  #  include "osdefs.h"             // SEP
  #  define HAVE_SYMLINK
-@@ -4499,7 +4503,15 @@
+@@ -4499,7 +4503,17 @@
      }
  
      Py_BEGIN_ALLOW_THREADS
-+#if WINVER >= 0x0602 // Windows 8 or greater
++//#if WINVER >= 0x0602 // Windows 8 or greater
      ret = PathCchSkipRoot(buffer, &end);
-+#else // Windows 7
-+	ret = S_OK;
-+    end = PathSkipRootW(buffer);
-+    if (!end) {
-+        ret = E_FAIL;
-+    }
-+#endif
++wprintf("pippo1 = %s\n", buffer);
++wprintf("pippo2 = %s\n", end);
++//#else // Windows 7
++//	ret = S_OK;
++//    end = PathSkipRootW(buffer);
++//    if (!end) {
++//        ret = E_FAIL;
++//    }
++//#endif
      Py_END_ALLOW_THREADS
      if (FAILED(ret)) {
          result = Py_BuildValue("sO", "", path->object);
