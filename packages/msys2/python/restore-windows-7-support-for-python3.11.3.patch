@@ -47,15 +47,8 @@ diff -au a/Modules/getpath.c b/Modules/getpath.c
  #else
 diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
 --- a/Modules/posixmodule.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Modules/posixmodule.c	2023-05-25 05:56:36.177773000 +0200
-@@ -9,13 +9,18 @@
- 
- #define PY_SSIZE_T_CLEAN
- 
-+#define WINVER 0x0602
- #include "Python.h"
- // Include <windows.h> before pycore internal headers. FSCTL_GET_REPARSE_POINT
- // is not exported by <windows.h> if the WIN32_LEAN_AND_MEAN macro is defined,
++++ b/Modules/posixmodule.c	2023-05-25 06:40:27.936301000 +0200
+@@ -15,7 +15,11 @@
  // whereas pycore_condvar.h defines the WIN32_LEAN_AND_MEAN macro.
  #ifdef MS_WINDOWS
  #  include <windows.h>
@@ -67,7 +60,7 @@ diff -au a/Modules/posixmodule.c b/Modules/posixmodule.c
  #  include <lmcons.h>             // UNLEN
  #  include "osdefs.h"             // SEP
  #  define HAVE_SYMLINK
-@@ -4499,7 +4504,14 @@
+@@ -4499,7 +4503,14 @@
      }
  
      Py_BEGIN_ALLOW_THREADS
