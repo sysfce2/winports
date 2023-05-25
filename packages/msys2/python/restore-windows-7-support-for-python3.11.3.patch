@@ -196,23 +196,28 @@ diff -au a/PCbuild/pywlauncher.vcxproj b/PCbuild/pywlauncher.vcxproj
    </ItemDefinitionGroup>
 diff -au a/Python/fileutils.c b/Python/fileutils.c
 --- a/Python/fileutils.c	2023-04-05 00:22:17.000000000 +0200
-+++ b/Python/fileutils.c	2023-05-25 03:30:33.743590400 +0200
-@@ -9,6 +9,7 @@
++++ b/Python/fileutils.c	2023-05-25 03:47:45.485602700 +0200
+@@ -9,8 +9,12 @@
  #  include <malloc.h>
  #  include <windows.h>
  #  include <pathcch.h>            // PathCchCombineEx
 +#  include <Shlwapi.h>
  extern int winerror_to_errno(int);
  #endif
++#if WINVER >= 0x0602 // Windows 8 or greater
++#error "defined WINVER >= 0x0602"
++#endif
  
-@@ -2005,7 +2006,15 @@
+ #ifdef HAVE_LANGINFO_H
+ #include <langinfo.h>
+@@ -2005,7 +2009,15 @@
  {
  #ifdef MS_WINDOWS
      const wchar_t *tail;
 +  #if WINVER >= 0x0602 // Windows 8 or greater
      HRESULT hr = PathCchSkipRoot(path, &tail);
 +  #else // Windows 7
-+	HRESULT hr = NULL;
++	HRESULT hr = S_OK;
 +    tail = PathSkipRootW(path);
 +    if (!tail) {
 +        hr = E_FAIL;
@@ -221,7 +226,7 @@ diff -au a/Python/fileutils.c b/Python/fileutils.c
      if (FAILED(hr) || path == tail) {
          return 0;
      }
-@@ -2093,8 +2102,12 @@
+@@ -2093,8 +2105,12 @@
               const wchar_t *dirname, const wchar_t *relfile)
  {
  #ifdef MS_WINDOWS
